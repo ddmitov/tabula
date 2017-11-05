@@ -1,0 +1,373 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use utf8;
+
+# CORE MODULES:
+use Encode qw(decode encode);
+use File::Basename qw(fileparse);
+use File::Find;
+use File::Spec::Functions qw(catdir);
+use FindBin qw($Bin);
+use Getopt::Long qw(GetOptions);
+use IO::Socket;
+
+# NON-CORE MODULES:
+use Browser::Open qw(open_browser_cmd_all);
+use Mojolicious::Lite;
+use Mojolicious::Plugin::AccessControl;
+use Mojo::IOLoop::ReadWriteFork;
+
+plugin 'AccessControl';
+
+print <<START;
+
+Tabula v.0.1
+Mojolicious framework for desktop applications.
+START
+
+# HELP:
+if ($ARGV[0] and $ARGV[0] =~ /^--help$/) {
+  help();
+}
+
+# APPLICATION LIFECYCLE VARIABLES:
+my %running_scripts;
+my $forbidden_requests_per_second = 0;
+my $shutdown_started = 0;
+
+# PORT VARIABLES:
+my $start_port;
+my $stop_port;
+my $first_available_port = 0;
+
+# SETTINGS:
+my $browser = 'default';
+my $port;
+my $no_port_check;
+
+# Command-line arguments:
+GetOptions(
+  "browser=s" => \$browser,
+  "port=s" => \$port,
+  "no-port-check" => \$no_port_check
+);
+
+# Port settings:
+if (defined $no_port_check and defined $port and $port =~ "-") {
+  print "Port ranges are not allowed if the --no-port-check option is in use!\n\n";
+  exit();
+}
+
+unless (defined $port) {
+  $start_port = 3000;
+  $stop_port = 9000;
+}
+
+if (defined $port) {
+  if ($port =~ '-') {
+    ($start_port, $stop_port) = split(/\-/,$port);
+  } else {
+    $start_port = $port;
+    $stop_port = $port;
+  }
+}
+
+if ($start_port <= 1024 or $stop_port <= 1024) {
+  print "Privileged ports (equal to or below port 1024) can not be used!\n\n";
+  exit();
+}
+
+# APPLICATION FOLDER:
+my $app_folder = catdir($Bin, 'resources', 'app');
+
+# CUSTOM PATHS
+# Template path:
+unshift @{app->renderer->paths}, $app_folder;
+# Static files path:
+unshift @{app->static->paths}, $app_folder;
+
+# SCRIPTS FINDER:
+my @scripts;
+if (-d $app_folder) {
+  find(sub {
+    if (-f $File::Find::name and /.pl$/) {
+      push @scripts, $File::Find::name;
+    }
+  }, $app_folder);
+}
+
+if (scalar (@scripts) == 0) {
+  print "No Perl scripts are found in the application folder: $app_folder\n\n";
+  exit();
+}
+
+# AVAILABLE PORT FINDER:
+unless (defined $no_port_check) {
+  my $current_port = $start_port;
+
+  until ($current_port == $stop_port + 1) {
+    my $socket = IO::Socket::INET->
+      new(PeerAddr => 'localhost',
+          PeerPort => $current_port,
+          Proto => 'tcp',
+          Timeout => 1);
+
+    if (!$socket) {
+      $first_available_port = $current_port;
+      last;
+    }
+
+    $current_port++;
+  }
+
+  if ($first_available_port == 0) {
+    if ($start_port == $stop_port) {
+      print "Port $start_port is not available.\n\n";
+    } else {
+      print "No available ports between port $start_port and port $stop_port.\n\n";
+    }
+    exit();
+  }
+}
+
+if (defined $no_port_check) {
+  $first_available_port = $start_port;
+}
+
+# BASE ROUTE HANDLER
+# If the local server is contacted from a non-local IP adress,
+# it will deny access and it will display a warning page:
+any '/' => (
+  'access' => [
+    {
+      on_deny => sub {
+        $forbidden_requests_per_second++;
+
+        # No response when contacted
+        # more than once a second from a non-local IP adress to
+        # prevent denial-of-service attacks:
+        if ($forbidden_requests_per_second == 1) {
+          my $self = shift;
+          $self->res->code(403);
+          $self->render(template => 'forbidden');
+        }
+      }
+    },
+    allow => 'localhost',
+    allow => '127.0.0.1',
+    deny  => 'all',
+  ]
+) => sub {
+  my $self = shift;
+  $self->render('index');
+};
+
+# WEBSOCKET HANDLER:
+foreach my $script (@scripts) {
+  my($script_name, $script_directory, $script_suffix) =
+    fileparse($script, '.pl');
+
+  websocket '/'.$script_name => sub {
+    my $self = shift;
+
+    my $loop = Mojo::IOLoop->singleton;
+    # No websocket timeout:
+    $loop->stream($self->tx->connection)->timeout(0);
+
+    # CHILD PROCESS HANDLER:
+    my $child_process = Mojo::IOLoop::ReadWriteFork->new;
+    # Make sure the child process object does not go out of scope:
+    $self->stash(fork => $child_process);
+
+    # Emitted if the child process can not fork:
+    $child_process->on(error => sub {
+      my ($child_process, $child_error) = @_;
+      warn $child_error;
+    });
+
+    # Emitted when the child prints to STDOUT or STDERR:
+    $child_process->on(read => sub {
+      my ($child_process, $child_process_output) = @_;
+      if ($shutdown_started == 0) {
+        $self->send(decode('UTF-8', $child_process_output));
+      }
+    });
+
+    # Start the child process:
+    $child_process->start(program => 'perl', program_args => [$script]);
+    $running_scripts{$script} = 1;
+
+    # FILESYSTEM HANDLER:
+    my $fs_handler = Mojo::IOLoop::ReadWriteFork->new;
+
+    # Emitted if the filesystem handler can not fork:
+    $fs_handler->on(error => sub {
+      my ($fs_process, $fs_error) = @_;
+      warn $fs_error;
+    });
+
+    # Emitted when the filesystem handler prints to STDOUT or STDERR:
+    $fs_handler->on(read => sub {
+      my ($fs_process, $filepath) = @_;
+      $self->send('file://'.decode('UTF-8', $filepath));
+    });
+
+    # Handle websocket requests:
+    $self->on(
+      message => sub {
+        my ($websocket, $websocket_request) = @_;
+
+        if ($websocket_request =~ '_select_') {
+          # Start the filesystem handler:
+          $fs_handler->start(
+            program => 'perl',
+            program_args => [
+              catdir($Bin, 'lib', 'fs-handler'),
+              $websocket_request
+            ]
+          );
+        } elsif ($websocket_request =~ '_closed_') {
+          $running_scripts{$script} = 0;
+        } elsif ($websocket_request =~ '_kill_') {
+          $child_process->kill();
+          $running_scripts{$script} = 0;
+        } else {
+          if ($running_scripts{$script} == 1) {
+            $child_process->write(encode('UTF-8', $websocket_request)."\n");
+          } else {
+            $child_process->start(program => 'perl', program_args => [$script]);
+            $child_process->write(encode('UTF-8', $websocket_request)."\n");
+            $running_scripts{$script} = 1;
+          }
+        }
+      }
+    );
+
+    # The child process is closed and the server is shut down
+    # when the local page is closed and the websocket connection is terminated.
+    $self->on(
+      finish => sub {
+        print "Closed websocket connection to: $script\n";
+        $child_process->write('_close_\n');
+        $shutdown_started = 1;
+
+        Mojo::IOLoop->timer(3 => sub {
+          $child_process->kill();
+          $running_scripts{$script} = 0;
+        });
+      }
+    );
+  };
+}
+
+# DEFAULT BROWSER STARTER:
+my $browser_process = Mojo::IOLoop::ReadWriteFork->new;
+
+# Emitted if the browser process can not fork:
+$browser_process->on(error => sub {
+  my ($process, $error) = @_;
+  warn $error;
+});
+
+unless ($browser =~ 'none') {
+  my $browser_command;
+
+  if ($browser =~ 'default') {
+    $browser_command = open_browser_cmd_all();
+  } else {
+    $browser_command = $browser;
+  }
+
+  print "Browser command: $browser_command\n";
+
+  # Start the browser process:
+  $browser_process->start(
+    program => $browser_command,
+    program_args => ['http://localhost:'.$first_available_port]
+  );
+}
+
+# ONE-SECOND TIMER
+# If all websocket connections and their local scripts are closed,
+# the application will be closed.
+my $timer = Mojo::IOLoop->recurring(1 => sub {
+  my $script_sum = 0;
+  foreach my $script (keys %running_scripts) {
+    $script_sum = $script_sum + $running_scripts{$script};
+  }
+
+  if ($shutdown_started == 1 and $script_sum == 0) {
+    print "Closing local server.\n\n";
+    exit();
+  }
+
+  # Forbidden requests counter is restarted every second:
+  $forbidden_requests_per_second = 0;
+});
+
+# SERVER STARTER:
+app->start('daemon', '-l', 'http://localhost:'.$first_available_port);
+
+# app->start('daemon',
+#            '-m', 'production',
+#            '-l', 'http://localhost:'.$first_available_port);
+
+sub help {
+  print <<HELP;
+
+Tabula v.0.1
+Mojolicious framework for desktop applications.
+Author: Dimitar D. Mitov <github.com/ddmitov>
+Released under the Artistic License.
+
+Usage:
+$0
+$0 --browser=<browser> --port=<port> --no-port-check
+
+Optional arguments:
+--browser=<browser>
+  Possible values:
+  1. default - system default browser will be found and used
+  2. none - no browser will be started
+     This value is useful when Tabula is started by a custom browser application.
+  3. full path to a browser binary like:
+     /usr/bin/firefox
+  4. browser command on PATH like:
+     firefox
+--port=<port>
+  Possible values:
+  1. single port number like:
+     3000
+  2. port range like:
+     3000-4000
+  Privileged ports equal to or below port 1024
+  are not accepted for security reasons!
+--no-port-check
+  Do not check the supplied single port.
+  This option is useful when Tabula is started by a custom browser application.
+--help
+  this help
+
+If run without arguments, Tabula will operate like started with the command line:
+$0 --browser=default --port=3000-9000
+The first available port between ports 3000 and 9000 will be used.
+Closing the local index page will close the server process too.
+
+HELP
+  exit (1);
+}
+
+__DATA__
+
+@@ forbidden.html.ep
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tabula</title>
+  </head>
+  <body>
+    <h1>Access denied!</h1>
+  </body>
+</html>

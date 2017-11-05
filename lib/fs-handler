@@ -1,0 +1,27 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use UI::Dialog;
+
+my $path;
+
+my $type = $ARGV[0];
+
+my $dialog =
+  new UI::Dialog (
+    backtitle => 'Tabula', title => 'Tabula',
+    height => 20, width => 65, listheight => 5,
+    order => ['zenity', 'gdialog', 'xdialog']
+  );
+
+if ($type =~ 'file') {
+  $path = $dialog->fselect(path => '/');
+}
+
+if ($type =~ 'directory') {
+  $path = $dialog->dselect(path => '/');
+}
+
+print $path;

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>Tabula Demo</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+
+    <script src="<%= url_for("/jquery/jquery-1.12.4.min.js") %>"></script>
+    <script src="<%= url_for("/bootstrap/js/bootstrap.js") %>"></script>
+
+    <link rel="stylesheet" type="text/css"
+      href="<%= url_for("/bootstrap/css/bootstrap.css") %>" media="all">
+
+    <style type='text/css'>
+      body {
+        text-align: center;
+        font-size: 16px;
+        font-family: sans-serif;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <br>
+
+      <div class="row">
+        <div class="col-xs-12 form-group">
+          <form>
+            <div class="input-group">
+
+              <input type="text" id="input-one" class="form-control"
+                placeholder="Press Enter to send data to interactive script one">
+
+              <span class="input-group-addon btn btn-primary"
+                onclick="javascript:insertOne();">
+                Send Data
+              </span>
+
+              <span class="input-group-addon btn btn-primary"
+                onclick="javascript:selectFileOne();">
+                Select File
+              </span>
+
+              <span class="input-group-addon btn btn-primary"
+                onclick="javascript:selectFolderOne();">
+                Select Folder
+              </span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="data-one"></div>
+      <div id="file-one"></div>
+
+      <br>
+
+      <div class="row">
+        <div class="col-xs-12 form-group">
+          <form>
+            <div class="input-group">
+
+              <input type="text" id="input-two" class="form-control"
+                placeholder="Press Enter to send data to interactive script two">
+
+              <span class="input-group-addon btn btn-primary"
+                onclick="javascript:insertTwo();">
+                Send Data
+              </span>
+
+              <span class="input-group-addon btn btn-primary"
+                onclick="javascript:selectFileTwo();">
+                Select File
+              </span>
+
+              <span class="input-group-addon btn btn-primary"
+                onclick="javascript:selectFolderTwo();">
+                Select Folder
+              </span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="data-two"></div>
+      <div id="file-two"></div>
+
+      <br>
+
+      <div id="noninteractive"></div>
+
+      <br>
+
+      <div class="row">
+        <div class="btn btn-primary"
+          onclick="javascript:selectImageDirectory();">
+          Select Image Directory
+        </div>
+      </div>
+
+      <br>
+
+      <div class="row">
+        <div id="resizer-directory"></div>
+      </div>
+
+      <br>
+
+      <div class="row">
+        <div id="resizer-output"></div>
+      </div>
+
+      <br>
+
+      <div class="row">
+        <div id="resizer-message"></div>
+      </div>
+
+      <div class="row">
+        <div class="btn btn-primary" id="resizer-stop-button"
+          style="visibility:hidden;" onclick="javascript:killResizerScript();">
+          Kill Script
+        </div>
+      </div>
+      <br>
+    </div>
+
+    <script>
+      var webSocketOne;
+      var webSocketTwo;
+      var resizerWebSocket;
+
+      $(document).ready(function() {
+        if (!("WebSocket" in window)) {
+          alert('Your browser does not support WebSockets!');
+          return;
+        }
+
+        $("#input-one").keypress(function(event) {
+          if (event.which == 13) {
+            event.preventDefault();
+            insertOne();
+          }
+        });
+
+        $("#input-two").keypress(function(event) {
+          if (event.which == 13) {
+            event.preventDefault();
+            insertTwo();
+          }
+        });
+
+        webSocketOne = new WebSocket("<%= url_for('interactive_one')->to_abs %>");
+        webSocketOne.onmessage = function (event) {
+          var data = event.data;
+
+          if (data.includes("file://")) {
+            $('#file-one').html("Last path: " + data.replace("file://", ""));
+          }
+
+          if (!data.includes("file://")) {
+            $('#data-one').html(data);
+          }
+        };
+
+        webSocketTwo = new WebSocket("<%= url_for('interactive_two')->to_abs %>");
+        webSocketTwo.onmessage = function (event) {
+          var data = event.data;
+
+          if (data.includes("file://")) {
+            $('#file-two').html("Last path: " + data.replace("file://", ""));
+          }
+
+          if (!data.includes("file://")) {
+            $('#data-two').html(data);
+          }
+        };
+
+        websocketNonInteractive =
+          new WebSocket("<%= url_for('noninteractive')->to_abs %>");
+
+        websocketNonInteractive.onopen = function (event) {
+          websocketNonInteractive.send("Hello from a non-interactive script!");
+        };
+
+        websocketNonInteractive.onmessage = function (event) {
+          var data = event.data;
+          $('#noninteractive').html(data);
+        };
+
+        resizerWebSocket = new WebSocket("<%= url_for('jpg_resizer')->to_abs %>");
+        resizerWebSocket.onmessage = function (event) {
+          var data = event.data;
+
+          if (data.includes('file://')) {
+            var folder = data.replace('file://', '');
+            $('#resizer-directory').html('Image Directory: ' + folder);
+            resizerWebSocket.send(folder);
+
+            $('#resizer-message').html('');
+            $('#resizer-stop-button').css({"visibility":"visible"});
+          }
+
+          if (!data.includes('file://')) {
+            $('#resizer-output').html(data);
+            window.scrollTo(0, document.body.scrollHeight);
+          }
+        };
+      });
+
+      function insertOne() {
+        var input = $('#input-one');
+        webSocketOne.send(input.val());
+        input.val('');
+      }
+
+      function insertTwo() {
+        var input = $('#input-two');
+        webSocketTwo.send(input.val());
+        input.val('');
+      }
+
+      function selectFileOne() {
+        var command = '_select_file_';
+        webSocketOne.send(command);
+      }
+
+      function selectFolderOne() {
+        var command = '_select_directory_';
+        webSocketOne.send(command);
+      }
+
+      function selectFileTwo() {
+        var command = '_select_file_';
+        webSocketTwo.send(command);
+      }
+
+      function selectFolderTwo() {
+        var command = '_select_directory_';
+        webSocketTwo.send(command);
+      }
+
+      function selectImageDirectory() {
+        resizerWebSocket.send('_select_directory_');
+      }
+
+      function killResizerScript() {
+        resizerWebSocket.send('_kill_');
+
+        $('#resizer-message').html('Resizer killed!');
+        $('#resizer-stop-button').css({"visibility":"hidden"});
+      }
+    </script>
+  </body>
+</html>
