@@ -19,6 +19,9 @@ use Mojolicious::Lite;
 use Mojolicious::Plugin::AccessControl;
 use Mojo::IOLoop::ReadWriteFork;
 
+use IO::Select;
+use Pod::Simple::Transcode;
+
 plugin 'AccessControl';
 
 print <<START;
@@ -76,6 +79,16 @@ if (defined $port) {
 
 if ($start_port <= 1024 or $stop_port <= 1024) {
   print "Privileged ports (equal to or below port 1024) can not be used!\n\n";
+  exit();
+}
+
+if ($start_port == $stop_port) {
+  print "First port can not be equal to the last port in a port range!\n\n";
+  exit();
+}
+
+if ($start_port > $stop_port) {
+  print "First port can not be greater than the last port in a port range!\n\n";
   exit();
 }
 
@@ -224,7 +237,7 @@ foreach my $script (@scripts) {
           $fs_handler->start(
             program => 'perl',
             program_args => [
-              catdir($Bin, 'lib', 'fs-handler'),
+              catdir($Bin, 'lib-tabula', 'fs-handler'),
               $websocket_request
             ]
           );
@@ -262,7 +275,7 @@ foreach my $script (@scripts) {
   };
 }
 
-# DEFAULT BROWSER STARTER:
+# BROWSER STARTER:
 my $browser_process = Mojo::IOLoop::ReadWriteFork->new;
 
 # Emitted if the browser process can not fork:
@@ -308,17 +321,16 @@ my $timer = Mojo::IOLoop->recurring(1 => sub {
 });
 
 # SERVER STARTER:
-app->start('daemon', '-l', 'http://localhost:'.$first_available_port);
+my $daemon =
+  Mojo::Server::Daemon->
+    new(app => app, listen => ['http://localhost:'.$first_available_port]);
+$daemon->start;
 
-# app->start('daemon',
-#            '-m', 'production',
-#            '-l', 'http://localhost:'.$first_available_port);
+Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 sub help {
   print <<HELP;
 
-Tabula v.0.1
-Mojolicious framework for desktop applications.
 Author: Dimitar D. Mitov <github.com/ddmitov>
 Released under the Artistic License.
 

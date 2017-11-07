@@ -20,6 +20,8 @@ http://www.perlmonks.org/?node_id=37237 (Find perl module version from command-l
 https://github.com/jhthorsen/mojo-ioloop-readwritefork/blob/master/example/tail.pl
 https://github.com/reyiyo/mojolicious_template
 
+https://gist.github.com/dex4er/22d5195a64e3058bc8a0 (Mojolicious + PAR::Packer without --addfile)
+
 https://perlmaven.com/perl-hashes
 https://alvinalexander.com/blog/post/perl/how-to-traverse-loop-items-elements-perl-hash
 http://www.binarytides.com/perl-port-scanner-code/
