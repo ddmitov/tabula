@@ -11,6 +11,7 @@ It is still in an early stage of development.
 * ``Mojolicious::Lite``  
 * ``Mojolicious::Plugin::AccessControl``  
 * ``Mojo::IOLoop::ReadWriteFork``  
+* ``UI::Dialog``  
 
 ## Usage
 ```

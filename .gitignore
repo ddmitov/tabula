@@ -1,5 +1,7 @@
+local
 perl/bin
 perl/lib
 
+cpanfile.snapshot
 gdrive
 upgit

@@ -13,14 +13,19 @@ use FindBin qw($Bin);
 use Getopt::Long qw(GetOptions);
 use IO::Socket;
 
-# NON-CORE MODULES:
+# Use CPAN modules installed by Carton:
+use lib catdir($Bin, "local", "lib", "perl5");
+
+# CPAN MODULES:
 use Browser::Open qw(open_browser_cmd_all);
 use Mojolicious::Lite;
 use Mojolicious::Plugin::AccessControl;
 use Mojo::IOLoop::ReadWriteFork;
 
-use IO::Select;
-use Pod::Simple::Transcode;
+# These dependencies have to be explicitely declared for
+# application packagers like perlc or PAR.
+use IO::Select; # Core module
+use Pod::Simple::Transcode; # CPAN module
 
 plugin 'AccessControl';
 
