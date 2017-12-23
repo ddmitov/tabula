@@ -156,11 +156,11 @@
         webSocketOne.onmessage = function (event) {
           var data = event.data;
 
-          if (data.includes("file://")) {
+          if (data.indexOf("file://") >= 0) {
             $('#file-one').html("Last path: " + data.replace("file://", ""));
           }
 
-          if (!data.includes("file://")) {
+          if (data.indexOf("file://") < 0) {
             $('#data-one').html(data);
           }
         };
@@ -169,11 +169,11 @@
         webSocketTwo.onmessage = function (event) {
           var data = event.data;
 
-          if (data.includes("file://")) {
+          if (data.indexOf("file://") >= 0) {
             $('#file-two').html("Last path: " + data.replace("file://", ""));
           }
 
-          if (!data.includes("file://")) {
+          if (data.indexOf("file://") < 0) {
             $('#data-two').html(data);
           }
         };
@@ -194,7 +194,7 @@
         resizerWebSocket.onmessage = function (event) {
           var data = event.data;
 
-          if (data.includes('file://')) {
+          if (data.indexOf("file://") >= 0) {
             var folder = data.replace('file://', '');
             $('#resizer-directory').html('Image Directory: ' + folder);
             resizerWebSocket.send(folder);
@@ -203,7 +203,7 @@
             $('#resizer-stop-button').css({"visibility":"visible"});
           }
 
-          if (!data.includes('file://')) {
+          if (data.indexOf("file://") < 0) {
             $('#resizer-output').html(data);
             window.scrollTo(0, document.body.scrollHeight);
           }
