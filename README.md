@@ -16,7 +16,7 @@ It is still in an early stage of development.
 ## Usage
 ```
 tabula  
-tabula --browser=<browser> --port=<port> --no-port-check  
+tabula --browser=<browser> --port=<port> --no-port-test  
 
 Optional arguments:  
 --browser=<browser>  
@@ -36,8 +36,8 @@ Optional arguments:
      3000-4000  
   Privileged ports equal to or below port 1024  
   are not accepted for security reasons!  
---no-port-check  
-  Do not check the supplied single port.  
+--no-port-test  
+  Do not test the supplied single port.  
   This option is useful when Tabula is started by a custom browser application.  
 --help  
   this help  

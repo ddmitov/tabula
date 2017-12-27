@@ -29,6 +29,18 @@ use Pod::Simple::Transcode; # CPAN module
 
 plugin 'AccessControl';
 
+# Chrome unsafe ports:
+my %UNSAFE_PORTS;
+$UNSAFE_PORTS{2049} = "nfs";
+$UNSAFE_PORTS{3659} = "apple-sasl or PasswordServer";
+$UNSAFE_PORTS{4045} = "lockd";
+$UNSAFE_PORTS{6000} = "X11";
+$UNSAFE_PORTS{6665} = "Alternate IRC - Apple addition";
+$UNSAFE_PORTS{6666} = "Alternate IRC - Apple addition";
+$UNSAFE_PORTS{6667} = "Standard IRC - Apple addition";
+$UNSAFE_PORTS{6668} = "Alternate IRC - Apple addition";
+$UNSAFE_PORTS{6669} = "Alternate IRC - Apple addition";
+
 print <<START;
 
 Tabula v.0.1
@@ -53,13 +65,13 @@ my $first_available_port = 0;
 # SETTINGS:
 my $browser = 'default';
 my $port_setting;
-my $no_port_check;
+my $no_port_test;
 
 # Command-line arguments:
 GetOptions(
   "browser=s" => \$browser,
   "port=s" => \$port_setting,
-  "no-port-check" => \$no_port_check
+  "no-port-test" => \$no_port_test
 );
 
 unless (defined $port_setting) {
@@ -69,8 +81,8 @@ unless (defined $port_setting) {
 
 if (defined $port_setting) {
   if ($port_setting =~ '-') {
-    if (defined $no_port_check) {
-      print "Port ranges are not allowed if the --no-port-check option is in use!\n\n";
+    if (defined $no_port_test) {
+      print "Port ranges are not allowed if the --no-port-test option is in use!\n\n";
       exit();
     }
 
@@ -116,32 +128,51 @@ if (scalar (@scripts) == 0) {
 }
 
 # AVAILABLE PORT FINDER:
-unless (defined $no_port_check) {
+unless (defined $no_port_test) {
   my $current_port = $start_port;
 
   until ($current_port == $stop_port + 1) {
-    my $socket = IO::Socket::INET->
-      new(PeerAddr => 'localhost',
-          PeerPort => $current_port,
-          Proto => 'tcp',
-          Timeout => 1);
+    if (defined $UNSAFE_PORTS{$current_port}) {
+      print "Port $current_port is considered an unsafe port.\n";
+      print "It may be is used by $UNSAFE_PORTS{$current_port}.\n";
+      $current_port++;
+    } else {
+      my $socket = IO::Socket::INET->
+        new(PeerAddr => 'localhost',
+            PeerPort => $current_port,
+            Proto => 'tcp',
+            Timeout => 1);
 
-    if (!$socket) {
-      $first_available_port = $current_port;
-      last;
+      if (!$socket) {
+        $first_available_port = $current_port;
+        last;
+      }
+
+      $current_port++;
     }
-
-    $current_port++;
   }
 
   if ($first_available_port == 0) {
-    print "No available ports between port $start_port and port $stop_port.\n\n";
+    if ($start_port < $stop_port) {
+      print "No available ports between port $start_port and port $stop_port.\n\n";
+    }
+
+    if ($start_port == $stop_port) {
+      print "Port $start_port is not available.\n\n";
+    }
     exit();
   }
 }
 
-if (defined $no_port_check) {
-  $first_available_port = $start_port;
+if (defined $no_port_test) {
+  if (defined $UNSAFE_PORTS{$start_port}) {
+    print "Port $start_port is considered an unsafe port.\n";
+    print "It may be is used by $UNSAFE_PORTS{$start_port}.\n";
+    print "Port $start_port is not available.\n\n";
+    exit();
+  } else {
+    $first_available_port = $start_port;
+  }
 }
 
 # BASE ROUTE HANDLER
@@ -331,7 +362,7 @@ Released under the Artistic License.
 
 Usage:
 $0
-$0 --browser=<browser> --port=<port> --no-port-check
+$0 --browser=<browser> --port=<port> --no-port-test
 
 Optional arguments:
 --browser=<browser>
@@ -351,8 +382,8 @@ Optional arguments:
      3000-4000
   Privileged ports equal to or below port 1024
   are not accepted for security reasons!
---no-port-check
-  Do not check the supplied single port.
+--no-port-test
+  Do not test the supplied single port.
   This option is useful when Tabula is started by a custom browser application.
 --help
   this help

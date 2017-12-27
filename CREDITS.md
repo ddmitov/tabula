@@ -33,3 +33,7 @@ https://www.w3schools.com/jsref/jsref_includes.asp
 https://stackoverflow.com/questions/33879740/submitting-form-in-js-using-enter-key-instead-of-a-submit-button  
 https://stackoverflow.com/questions/9614622/equivalent-of-jquery-hide-to-set-visibility-hidden  
 http://adripofjavascript.com/blog/drips/determining-if-a-string-contains-another-string-in-javascript-three-approaches.html  
+
+## Google Chrome
+https://superuser.com/questions/188058/which-ports-are-considered-unsafe-on-chrome  
+https://src.chromium.org/viewvc/chrome/trunk/src/net/base/net_util.cc?view=markup  
