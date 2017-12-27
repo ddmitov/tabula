@@ -53,8 +53,6 @@ my $first_available_port = 0;
 # SETTINGS:
 my $browser = 'default';
 my $port_setting;
-my $port_setting_key;
-my $port = "";
 my $no_port_check;
 
 # Command-line arguments:
@@ -64,35 +62,27 @@ GetOptions(
   "no-port-check" => \$no_port_check
 );
 
-($port_setting_key, $port) = split(/=/,$port_setting);
-
-# Port settings:
-if (defined $no_port_check and defined $port_setting and $port =~ "-") {
-  print "Port ranges are not allowed if the --no-port-check option is in use!\n\n";
-  exit();
-}
-
-unless (defined $port) {
+unless (defined $port_setting) {
   $start_port = 3000;
   $stop_port = 9000;
 }
 
-if (defined $port) {
-  if ($port =~ '-') {
-    ($start_port, $stop_port) = split(/\-/,$port);
+if (defined $port_setting) {
+  if ($port_setting =~ '-') {
+    if (defined $no_port_check) {
+      print "Port ranges are not allowed if the --no-port-check option is in use!\n\n";
+      exit();
+    }
+
+    ($start_port, $stop_port) = split(/\-/, $port_setting);
   } else {
-    $start_port = $port;
-    $stop_port = $port;
+    $start_port = $port_setting;
+    $stop_port = $port_setting;
   }
 }
 
 if ($start_port <= 1024 or $stop_port <= 1024) {
   print "Privileged ports (equal to or below port 1024) can not be used!\n\n";
-  exit();
-}
-
-if ($start_port == $stop_port) {
-  print "First port can not be equal to the last port in a port range!\n\n";
   exit();
 }
 
@@ -145,11 +135,7 @@ unless (defined $no_port_check) {
   }
 
   if ($first_available_port == 0) {
-    if ($start_port == $stop_port) {
-      print "Port $start_port is not available.\n\n";
-    } else {
-      print "No available ports between port $start_port and port $stop_port.\n\n";
-    }
+    print "No available ports between port $start_port and port $stop_port.\n\n";
     exit();
   }
 }
