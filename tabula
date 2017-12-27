@@ -67,7 +67,7 @@ GetOptions(
 ($port_setting_key, $port) = split(/=/,$port_setting);
 
 # Port settings:
-if (defined $no_port_check and $port =~ "-") {
+if (defined $no_port_check and defined $port_setting and $port =~ "-") {
   print "Port ranges are not allowed if the --no-port-check option is in use!\n\n";
   exit();
 }
