@@ -17,6 +17,7 @@ http://www.perlmonks.org/?node_id=1070002 (Mojolicious websocket with server-sid
 http://www.perlmonks.org/?node_id=1130920 (Mojolicious Websocket example)  
 http://www.perlmonks.org/?node_id=37237 (Find perl module version from command-line)  
 
+https://github.com/kraih/mojo/wiki/Apache-deployment#apachemod_perl-psgiplack  
 https://github.com/jhthorsen/mojo-ioloop-readwritefork/blob/master/example/tail.pl  
 https://github.com/reyiyo/mojolicious_template  
 

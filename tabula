@@ -1,5 +1,9 @@
 #!/usr/bin/perl
 
+BEGIN {
+  $ENV{MOJO_MODE} = 'production';
+}
+
 use strict;
 use warnings;
 use utf8;
