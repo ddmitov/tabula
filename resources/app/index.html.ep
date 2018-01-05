@@ -132,6 +132,10 @@
       var webSocketTwo;
       var resizerWebSocket;
 
+      window.onbeforeunload = function() {
+        return false;
+      }
+
       $(document).ready(function() {
         if (!("WebSocket" in window)) {
           alert('Your browser does not support WebSockets!');
