@@ -292,7 +292,6 @@ foreach my $script (@scripts) {
     # when the local page is closed and the websocket connection is terminated.
     $self->on(
       finish => sub {
-        print "Closed websocket connection to: $script\n";
         $child_process->write('_close_\n');
         $shutdown_started = 1;
 

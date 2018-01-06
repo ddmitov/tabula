@@ -22,7 +22,7 @@
   </head>
 
   <body>
-    <div class="container">
+    <div class="container" id="container">
       <br>
 
       <div class="row">
@@ -169,6 +169,10 @@
           }
         };
 
+        webSocketOne.onclose = function (event) {
+          webSocketClosed();
+        }
+
         webSocketTwo = new WebSocket("<%= url_for('interactive_two')->to_abs %>");
         webSocketTwo.onmessage = function (event) {
           var data = event.data;
@@ -181,6 +185,10 @@
             $('#data-two').html(data);
           }
         };
+
+        webSocketTwo.onclose = function (event) {
+          webSocketClosed();
+        }
 
         websocketNonInteractive =
           new WebSocket("<%= url_for('noninteractive')->to_abs %>");
@@ -255,6 +263,10 @@
 
         $('#resizer-message').html('Resizer killed!');
         $('#resizer-stop-button').css({"visibility":"hidden"});
+      }
+
+      function webSocketClosed() {
+        $('#container').html('<br>Tabula local server stoped. Close this window.');
       }
     </script>
   </body>
