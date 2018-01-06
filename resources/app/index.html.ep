@@ -42,11 +42,6 @@
                 onclick="javascript:selectFileOne();">
                 Select File
               </span>
-
-              <span class="input-group-addon btn btn-primary"
-                onclick="javascript:selectFolderOne();">
-                Select Folder
-              </span>
             </div>
           </form>
         </div>
@@ -73,11 +68,6 @@
               <span class="input-group-addon btn btn-primary"
                 onclick="javascript:selectFileTwo();">
                 Select File
-              </span>
-
-              <span class="input-group-addon btn btn-primary"
-                onclick="javascript:selectFolderTwo();">
-                Select Folder
               </span>
             </div>
           </form>
@@ -161,7 +151,7 @@
           var data = event.data;
 
           if (data.indexOf("file://") >= 0) {
-            $('#file-one').html("Last path: " + data.replace("file://", ""));
+            $('#file-one').html("Last file: " + data.replace("file://", ""));
           }
 
           if (data.indexOf("file://") < 0) {
@@ -178,7 +168,7 @@
           var data = event.data;
 
           if (data.indexOf("file://") >= 0) {
-            $('#file-two').html("Last path: " + data.replace("file://", ""));
+            $('#file-two').html("Last file: " + data.replace("file://", ""));
           }
 
           if (data.indexOf("file://") < 0) {
@@ -239,18 +229,8 @@
         webSocketOne.send(command);
       }
 
-      function selectFolderOne() {
-        var command = '_select_directory_';
-        webSocketOne.send(command);
-      }
-
       function selectFileTwo() {
         var command = '_select_file_';
-        webSocketTwo.send(command);
-      }
-
-      function selectFolderTwo() {
-        var command = '_select_directory_';
         webSocketTwo.send(command);
       }
 
@@ -266,7 +246,7 @@
       }
 
       function webSocketClosed() {
-        $('#container').html('<br>Tabula local server stoped. Close this window.');
+        $('#container').html('<br>Tabula local server is stopped. Close this window.');
       }
     </script>
   </body>
