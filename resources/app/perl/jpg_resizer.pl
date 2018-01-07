@@ -33,7 +33,7 @@ while (my $file = readdir ($directory_handle)) {
   $output = $output.'Resizing '.$file.' ...<br>';
   print $output;
 
-  my $result = `/usr/bin/convert $filepath_to_read -resize 20% $filepath_to_write`;
+  my $result = `convert $filepath_to_read -resize 20% $filepath_to_write`;
 }
 
 closedir ($directory_handle);

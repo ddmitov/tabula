@@ -82,11 +82,15 @@
       <div id="noninteractive"></div>
 
       <br>
+      JPEG Resizer can resize your JPEG images to 20% of their original size<br>
+      using the 'convert' binary from the ImageMagick Linux package.<br>
+      All resized images are written to a subdirectory of the user-selected root directory.<br>
+      <br>
 
       <div class="row">
         <div class="btn btn-primary"
           onclick="javascript:selectImageDirectory();">
-          Select Image Directory
+          Select Image Directory for JPEG Resizer
         </div>
       </div>
 
