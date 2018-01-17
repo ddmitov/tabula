@@ -3,7 +3,7 @@ Tabula
 [![License: Artistic-2.0](https://img.shields.io/badge/License-Artistic%202.0-0298c3.svg)](./LICENSE.md)
 
 Tabula is a Mojolicious framework for desktop applications.  
-It is still in an early stage of development.  
+It is still in an early stage of development and only Unix-like operating systems are supported.  
 
 ## CPAN Dependencies
 * ``AnyEvent`` (for the demo scripts only)  
