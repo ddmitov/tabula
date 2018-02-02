@@ -14,7 +14,6 @@ http://blogs.perl.org/users/revlin_john/2013/03/re-simple-webserver---serve-stat
 
 http://www.perlmonks.org/?node_id=1130920 (Mojolicious Websocket example)  
 http://www.perlmonks.org/?node_id=1070002 (Mojolicious websocket with server-side repeating events)  
-http://www.perlmonks.org/?node_id=1130920 (Mojolicious Websocket example)  
 http://www.perlmonks.org/?node_id=37237 (Find perl module version from command-line)  
 
 https://github.com/kraih/mojo/wiki/Apache-deployment#apachemod_perl-psgiplack  
