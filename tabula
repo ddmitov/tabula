@@ -57,6 +57,7 @@ if ($ARGV[0] and $ARGV[0] =~ /^--help$/) {
 }
 
 # APPLICATION LIFECYCLE VARIABLES:
+my $page_loaded = 0;
 my %running_scripts;
 my $forbidden_requests_per_second = 0;
 my $shutdown_started = 0;
@@ -192,9 +193,9 @@ any '/' => (
         # more than once a second from a non-local IP adress to
         # prevent denial-of-service attacks:
         if ($forbidden_requests_per_second == 1) {
-          my $self = shift;
-          $self->res->code(403);
-          $self->render(template => 'forbidden');
+          my $forbidden_requests_handler = shift;
+          $forbidden_requests_handler->res->code(403);
+          $forbidden_requests_handler->render(template => 'forbidden');
         }
       }
     },
@@ -203,26 +204,35 @@ any '/' => (
     deny  => 'all',
   ]
 ) => sub {
-  my $self = shift;
-  $self->render('index');
+  my $page_handler = shift;
+
+  $page_handler->render('index');
+  $page_loaded = 1;
+  $shutdown_started = 0;
 };
 
-# WEBSOCKET HANDLER:
+# The '/_quit_' URL is used to
+# signal the Tabula server that the local page is closed:
+any '/_quit_' => sub {
+  $shutdown_started = 1;
+};
+
+# WEBSOCKETS HANDLER:
 foreach my $script (@scripts) {
   my($script_name, $script_directory, $script_suffix) =
     fileparse($script, '.pl');
 
   websocket '/'.$script_name => sub {
-    my $self = shift;
+    my $websocket_handler = shift;
 
     # No websocket timeout:
     my $loop = Mojo::IOLoop->singleton;
-    $loop->stream($self->tx->connection)->timeout(0);
+    $loop->stream($websocket_handler->tx->connection)->timeout(0);
 
     # CHILD PROCESS HANDLER:
     my $child_process = Mojo::IOLoop::ReadWriteFork->new;
     # Make sure the child process object does not go out of scope:
-    $self->stash(fork => $child_process);
+    $websocket_handler->stash(fork => $child_process);
 
     # Emitted if the child process can not fork:
     $child_process->on(error => sub {
@@ -233,8 +243,8 @@ foreach my $script (@scripts) {
     # Emitted when the child prints to STDOUT or STDERR:
     $child_process->on(read => sub {
       my ($child_process, $child_process_output) = @_;
-      if ($shutdown_started == 0) {
-        $self->send(decode('UTF-8', $child_process_output));
+      if ($page_loaded == 1) {
+        $websocket_handler->send(decode('UTF-8', $child_process_output));
       }
     });
 
@@ -254,11 +264,11 @@ foreach my $script (@scripts) {
     # Emitted when the filesystem handler prints to STDOUT or STDERR:
     $fs_handler->on(read => sub {
       my ($fs_process, $filepath) = @_;
-      $self->send('file://'.decode('UTF-8', $filepath));
+      $websocket_handler->send('file://'.decode('UTF-8', $filepath));
     });
 
     # Handle websocket requests:
-    $self->on(
+    $websocket_handler->on(
       message => sub {
         my ($websocket, $websocket_request) = @_;
 
@@ -288,12 +298,11 @@ foreach my $script (@scripts) {
       }
     );
 
-    # The child process is closed and the server is shut down
-    # when the local page is closed and the websocket connection is terminated.
-    $self->on(
+    # All child processes are closed
+    # when the local page and its websockets are closed.
+    $websocket_handler->on(
       finish => sub {
         $child_process->write('_close_\n');
-        $shutdown_started = 1;
 
         Mojo::IOLoop->timer(3 => sub {
           $child_process->kill();
@@ -331,17 +340,17 @@ unless ($browser =~ 'none') {
   );
 }
 
-# ONE-SECOND TIMER
-# If all websocket connections and their local scripts are closed,
-# the application will be closed.
+# ONE-SECOND TIMER:
 my $timer = Mojo::IOLoop->recurring(1 => sub {
+  # When the local page and all local scripts are closed,
+  # the Tabula server is also closed.
   my $script_sum = 0;
   foreach my $script (keys %running_scripts) {
     $script_sum = $script_sum + $running_scripts{$script};
   }
 
   if ($shutdown_started == 1 and $script_sum == 0) {
-    print "Closing local server.\n\n";
+    print "Closing Tabula local server.\n\n";
     exit();
   }
 

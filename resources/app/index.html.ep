@@ -125,11 +125,21 @@
 
     <script>
       var webSocketOne;
+      webSocketOne = new WebSocket("<%= url_for('interactive_one')->to_abs %>");
+
       var webSocketTwo;
+      webSocketTwo = new WebSocket("<%= url_for('interactive_two')->to_abs %>");
+
+      var nonInteractiveWebSocket;
+      nonInteractiveWebSocket = new WebSocket("<%= url_for('noninteractive')->to_abs %>");
+
       var resizerWebSocket;
+      resizerWebSocket = new WebSocket("<%= url_for('jpg_resizer')->to_abs %>");
 
       window.onbeforeunload = function() {
-        return "Reloading this page will close the Tabula application!";
+        var shutdownRequest = new XMLHttpRequest();
+        shutdownRequest.open("GET", "/_quit_");
+        shutdownRequest.send();
       }
 
       $(document).ready(function() {
@@ -152,7 +162,6 @@
           }
         });
 
-        webSocketOne = new WebSocket("<%= url_for('interactive_one')->to_abs %>");
         webSocketOne.onmessage = function (event) {
           var data = event.data;
 
@@ -169,7 +178,6 @@
           webSocketClosed();
         }
 
-        webSocketTwo = new WebSocket("<%= url_for('interactive_two')->to_abs %>");
         webSocketTwo.onmessage = function (event) {
           var data = event.data;
 
@@ -186,19 +194,15 @@
           webSocketClosed();
         }
 
-        websocketNonInteractive =
-          new WebSocket("<%= url_for('noninteractive')->to_abs %>");
-
-        websocketNonInteractive.onopen = function (event) {
-          websocketNonInteractive.send("Hello from a non-interactive script!");
+        nonInteractiveWebSocket.onopen = function (event) {
+          nonInteractiveWebSocket.send("Hello from a non-interactive script!");
         };
 
-        websocketNonInteractive.onmessage = function (event) {
+        nonInteractiveWebSocket.onmessage = function (event) {
           var data = event.data;
           $('#noninteractive').html(data);
         };
 
-        resizerWebSocket = new WebSocket("<%= url_for('jpg_resizer')->to_abs %>");
         resizerWebSocket.onmessage = function (event) {
           var data = event.data;
 

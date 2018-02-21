@@ -28,7 +28,7 @@ http://www.binarytides.com/perl-port-scanner-code/
 https://stackoverflow.com/questions/303216/how-do-i-break-out-of-a-loop-in-perl  
 
 ## JavaScript
-https://www.w3schools.com/jsref/jsref_includes.asp  
+https://www.w3schools.com/xml/ajax_xmlhttprequest_send.asp  
 
 https://stackoverflow.com/questions/33879740/submitting-form-in-js-using-enter-key-instead-of-a-submit-button  
 https://stackoverflow.com/questions/9614622/equivalent-of-jquery-hide-to-set-visibility-hidden  
