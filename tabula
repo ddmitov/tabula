@@ -111,7 +111,7 @@ if ($start_port > $stop_port) {
 # APPLICATION FOLDER:
 my $app_folder = catdir($Bin, 'resources', 'app');
 
-# CUSTOM PATHS
+# CUSTOM PATHS:
 # Template path:
 unshift @{app->renderer->paths}, $app_folder;
 # Static files path:
@@ -180,7 +180,7 @@ if (defined $no_port_test) {
   }
 }
 
-# BASE ROUTE HANDLER
+# BASE ROUTE HANDLER:
 # If the local server is contacted from a non-local IP adress,
 # it will deny access and it will display a warning page:
 any '/' => (
@@ -351,7 +351,7 @@ my $timer = Mojo::IOLoop->recurring(1 => sub {
 
   if ($shutdown_started == 1 and $script_sum == 0) {
     print "Closing Tabula local server.\n\n";
-    exit();
+    Mojo::IOLoop->stop_gracefully;
   }
 
   # Forbidden requests counter is restarted every second:
@@ -366,6 +366,7 @@ $daemon->start;
 
 Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
+# HELP:
 sub help {
   print <<HELP;
 
