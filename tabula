@@ -57,10 +57,9 @@ if ($ARGV[0] and $ARGV[0] =~ /^--help$/) {
 }
 
 # APPLICATION LIFECYCLE VARIABLES:
-my $page_loaded = 0;
 my %running_scripts;
-my $forbidden_requests_per_second = 0;
-my $shutdown_started = 0;
+my $forbidden_requests = 0;
+my $page_closed = 0;
 
 # PORT VARIABLES:
 my $start_port;
@@ -187,13 +186,15 @@ any '/' => (
   'access' => [
     {
       on_deny => sub {
-        $forbidden_requests_per_second++;
+        $forbidden_requests++;
 
-        # No response when contacted
+        # Tabula gives no response when contacted
         # more than once a second from a non-local IP adress to
-        # prevent denial-of-service attacks:
-        if ($forbidden_requests_per_second == 1) {
+        # prevent denial-of-service attacks.
+        # Every 3 seconds the forbidden requests counter is restarted.
+        if ($forbidden_requests <= 3) {
           my $forbidden_requests_handler = shift;
+
           $forbidden_requests_handler->res->code(403);
           $forbidden_requests_handler->render(template => 'forbidden');
         }
@@ -206,15 +207,14 @@ any '/' => (
 ) => sub {
   my $page_handler = shift;
 
+  $page_closed = 0;
   $page_handler->render('index');
-  $page_loaded = 1;
-  $shutdown_started = 0;
 };
 
-# The '/_quit_' URL is used to
-# signal the Tabula server that the local page is closed:
+# The '/_quit_' URL may be used to signal
+# the Tabula server that the local page is closed:
 any '/_quit_' => sub {
-  $shutdown_started = 1;
+  $page_closed = 1;
 };
 
 # WEBSOCKETS HANDLER:
@@ -224,6 +224,8 @@ foreach my $script (@scripts) {
 
   websocket '/'.$script_name => sub {
     my $websocket_handler = shift;
+
+    $page_closed = 0;
 
     # No websocket timeout:
     my $loop = Mojo::IOLoop->singleton;
@@ -243,7 +245,7 @@ foreach my $script (@scripts) {
     # Emitted when the child prints to STDOUT or STDERR:
     $child_process->on(read => sub {
       my ($child_process, $child_process_output) = @_;
-      if ($page_loaded == 1) {
+      if ($page_closed == 0) {
         $websocket_handler->send(decode('UTF-8', $child_process_output));
       }
     });
@@ -302,6 +304,7 @@ foreach my $script (@scripts) {
     # when the local page and its websockets are closed.
     $websocket_handler->on(
       finish => sub {
+        $page_closed = 1;
         $child_process->write('_close_\n');
 
         Mojo::IOLoop->timer(3 => sub {
@@ -340,22 +343,23 @@ unless ($browser =~ 'none') {
   );
 }
 
-# ONE-SECOND TIMER:
-my $timer = Mojo::IOLoop->recurring(1 => sub {
+# ADDITIONAL EVENT LOOP:
+# The following code is executed every 3 seconds.
+my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
   # When the local page and all local scripts are closed,
   # the Tabula server is also closed.
-  my $script_sum = 0;
+  my $active_scripts = 0;
   foreach my $script (keys %running_scripts) {
-    $script_sum = $script_sum + $running_scripts{$script};
+    $active_scripts = $active_scripts + $running_scripts{$script};
   }
 
-  if ($shutdown_started == 1 and $script_sum == 0) {
-    print "Closing Tabula local server.\n\n";
+  if ($page_closed == 1 and $active_scripts == 0) {
     Mojo::IOLoop->stop_gracefully;
+    print "Closing Tabula local server.\n\n";
   }
 
-  # Forbidden requests counter is restarted every second:
-  $forbidden_requests_per_second = 0;
+  # Forbidden requests counter is restarted:
+  $forbidden_requests = 0;
 });
 
 # SERVER STARTER:
