@@ -316,33 +316,6 @@ foreach my $script (@scripts) {
   };
 }
 
-# BROWSER STARTER:
-my $browser_process = Mojo::IOLoop::ReadWriteFork->new;
-
-# Emitted if the browser process can not fork:
-$browser_process->on(error => sub {
-  my ($process, $error) = @_;
-  warn $error;
-});
-
-unless ($browser =~ 'none') {
-  my $browser_command;
-
-  if ($browser =~ 'default') {
-    $browser_command = open_browser_cmd_all();
-  } else {
-    $browser_command = $browser;
-  }
-
-  print "Browser command: $browser_command\n";
-
-  # Start the browser process:
-  $browser_process->start(
-    program => $browser_command,
-    program_args => ['http://localhost:'.$first_available_port]
-  );
-}
-
 # ADDITIONAL EVENT LOOP:
 # The following code is executed every 3 seconds.
 my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
@@ -368,6 +341,34 @@ my $daemon =
     new(app => app, listen => ['http://localhost:'.$first_available_port]);
 $daemon->start;
 
+# BROWSER STARTER:
+unless ($browser =~ 'none') {
+  my $browser_command;
+
+  if ($browser =~ 'default') {
+    $browser_command = open_browser_cmd_all();
+  } else {
+    $browser_command = $browser;
+  }
+
+  print "Browser command: $browser_command http://localhost:$first_available_port\n";
+
+  my $pid = fork();
+  if (not $pid) {
+    close(STDIN) or die "Can not close STDIN: $!";
+    close(STDOUT) or die "Can not close STDOUT: $!";
+    close(STDERR) or die "Can not close STDERR: $!";
+
+    exec ($browser_command, 'http://localhost:'.$first_available_port);
+    exit(0);
+  }
+
+  if (not defined $pid) {
+    die "Can not fork: $!";
+  }
+}
+
+# EVENT LOOP STARTER:
 Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 # HELP:

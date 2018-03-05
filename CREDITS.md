@@ -15,6 +15,7 @@ http://blogs.perl.org/users/revlin_john/2013/03/re-simple-webserver---serve-stat
 http://www.perlmonks.org/?node_id=1130920 (Mojolicious Websocket example)  
 http://www.perlmonks.org/?node_id=1070002 (Mojolicious websocket with server-side repeating events)  
 http://www.perlmonks.org/?node_id=37237 (Find perl module version from command-line)  
+http://www.perlmonks.org/?node_id=822279 (Can't close STDIN/STDOUT/STDERR)  
 
 https://github.com/kraih/mojo/wiki/Apache-deployment#apachemod_perl-psgiplack  
 https://github.com/jhthorsen/mojo-ioloop-readwritefork/blob/master/example/tail.pl  
@@ -23,6 +24,8 @@ https://github.com/reyiyo/mojolicious_template
 https://gist.github.com/dex4er/22d5195a64e3058bc8a0 (Mojolicious + PAR::Packer without --addfile)  
 
 https://perlmaven.com/perl-hashes  
+https://perlmaven.com/fork  
+
 https://alvinalexander.com/blog/post/perl/how-to-traverse-loop-items-elements-perl-hash  
 http://www.binarytides.com/perl-port-scanner-code/  
 https://stackoverflow.com/questions/303216/how-do-i-break-out-of-a-loop-in-perl  
