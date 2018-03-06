@@ -34,7 +34,7 @@ Optional arguments:
      3000  
   2. port range like:  
      3000-4000  
-  Privileged ports equal to or below port 1024  
+  Privileged ports equal to or below port 1024 or Chrome unsafe ports  
   are not accepted for security reasons!  
 --no-port-test  
   Do not test the supplied single port.  
@@ -52,4 +52,4 @@ Closing the local index page will close the server process too.
 
 ## [License](./LICENSE.md)
 Tabula is licensed under the Artistic License 2.0.  
-Dimitar D. Mitov 2017  
+Dimitar D. Mitov 2017 - 2018  
