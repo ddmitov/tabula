@@ -187,12 +187,11 @@ any '/' => (
   'access' => [
     {
       on_deny => sub {
-        $forbidden_requests++;
-
         # Tabula gives no response when contacted
         # more than once a second from a non-local IP adress to
         # prevent denial-of-service attacks.
         # Every 3 seconds the forbidden requests counter is restarted.
+        $forbidden_requests++;
         if ($forbidden_requests <= 3) {
           my $forbidden_requests_handler = shift;
 

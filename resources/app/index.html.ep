@@ -218,6 +218,10 @@
           if (data.indexOf("file://") < 0) {
             $('#resizer-output').html(data);
             window.scrollTo(0, document.body.scrollHeight);
+
+            if (data.indexOf("Resizing successfully completed") >= 0) {
+              $('#resizer-stop-button').css({"visibility":"hidden"});
+            }
           }
         };
       });
