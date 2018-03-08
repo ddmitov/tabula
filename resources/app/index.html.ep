@@ -99,12 +99,6 @@
       <br>
 
       <div class="row">
-        <div id="resizer-directory"></div>
-      </div>
-
-      <br>
-
-      <div class="row">
         <div id="resizer-output"></div>
       </div>
 
@@ -206,22 +200,12 @@
         resizerWebSocket.onmessage = function (event) {
           var data = event.data;
 
-          if (data.indexOf("file://") >= 0) {
-            var folder = data.replace('file://', '');
-            $('#resizer-directory').html('Image Directory: ' + folder);
-            resizerWebSocket.send(folder);
+          $('#resizer-output').html(data);
+          $('#resizer-stop-button').css({"visibility":"visible"});
+          window.scrollTo(0, document.body.scrollHeight);
 
-            $('#resizer-message').html('');
-            $('#resizer-stop-button').css({"visibility":"visible"});
-          }
-
-          if (data.indexOf("file://") < 0) {
-            $('#resizer-output').html(data);
-            window.scrollTo(0, document.body.scrollHeight);
-
-            if (data.indexOf("Resizing successfully completed") >= 0) {
-              $('#resizer-stop-button').css({"visibility":"hidden"});
-            }
+          if (data.indexOf("Resizing successfully completed") >= 0) {
+            $('#resizer-stop-button').css({"visibility":"hidden"});
           }
         };
       });

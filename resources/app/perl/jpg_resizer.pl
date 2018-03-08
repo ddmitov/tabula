@@ -11,7 +11,7 @@ my $stdin = <STDIN>;
 chomp $stdin;
 my $folder_to_open = decode('UTF-8', $stdin);
 
-my $output = '';
+my $output = 'Image Directory: '.$folder_to_open.'<br>';
 
 opendir (my $directory_handle, $folder_to_open) or die $!;
 

@@ -237,18 +237,23 @@ foreach my $script (@scripts) {
     $websocket_handler->stash(fork => $child_process);
 
     # Emitted if the child process can not fork:
-    $child_process->on(error => sub {
-      my ($child_process, $child_error) = @_;
-      warn $child_error;
-    });
+    $child_process->on(
+      error => sub {
+        my ($child_process, $child_error) = @_;
+        warn $child_error;
+      }
+    );
 
     # Emitted when the child prints to STDOUT or STDERR:
-    $child_process->on(read => sub {
-      my ($child_process, $child_process_output) = @_;
-      if ($page_closed == 0) {
-        $websocket_handler->send(decode('UTF-8', $child_process_output));
+    $child_process->on(
+      read => sub {
+        my ($child_process, $child_process_output) = @_;
+
+        if ($page_closed == 0) {
+          $websocket_handler->send(decode('UTF-8', $child_process_output));
+        }
       }
-    });
+    );
 
     # Start the child process:
     $child_process->start(program => 'perl', program_args => [$script]);
@@ -264,10 +269,19 @@ foreach my $script (@scripts) {
     });
 
     # Emitted when the filesystem handler prints to STDOUT or STDERR:
-    $fs_handler->on(read => sub {
-      my ($fs_process, $filepath) = @_;
-      $websocket_handler->send('file://'.decode('UTF-8', $filepath));
-    });
+    $fs_handler->on(
+      read => sub {
+        my ($fs_process, $filepath) = @_;
+
+        if ($running_scripts{$script} == 1) {
+          $child_process->write(encode('UTF-8', $filepath)."\n");
+        } else {
+          $child_process->start(program => 'perl', program_args => [$script]);
+          $child_process->write(encode('UTF-8', $filepath)."\n");
+          $running_scripts{$script} = 1;
+        }
+      }
+    );
 
     # Handle websocket requests:
     $websocket_handler->on(
@@ -276,11 +290,11 @@ foreach my $script (@scripts) {
 
         # Start the filesystem handler:
         if ($websocket_request =~ '_select_') {
-          if ($websocket_request =~ '_select_directory_') {
+          if ($websocket_request =~ '_directory_') {
             $fs_handler->run(\&filesystem_selector, "directory");
           }
 
-          if ($websocket_request =~ '_select_file_') {
+          if ($websocket_request =~ '_file_') {
             $fs_handler->run(\&filesystem_selector, "file");
           }
         } elsif ($websocket_request =~ '_closed_') {
