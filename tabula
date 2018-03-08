@@ -7,6 +7,7 @@ BEGIN {
 use strict;
 use warnings;
 use utf8;
+use feature ':5.10';
 
 # CORE MODULES:
 use Encode qw(decode encode);
@@ -260,24 +261,26 @@ foreach my $script (@scripts) {
     $running_scripts{$script} = 1;
 
     # FILESYSTEM HANDLER:
-    my $fs_handler = Mojo::IOLoop::ReadWriteFork->new;
+    my $filesystem_handler = Mojo::IOLoop::ReadWriteFork->new;
 
     # Emitted if the filesystem handler can not fork:
-    $fs_handler->on(error => sub {
-      my ($fs_process, $fs_error) = @_;
-      warn $fs_error;
-    });
+    $filesystem_handler->on(
+      error => sub {
+        my ($fs_process, $fs_error) = @_;
+        warn $fs_error;
+      }
+    );
 
     # Emitted when the filesystem handler prints to STDOUT or STDERR:
-    $fs_handler->on(
+    $filesystem_handler->on(
       read => sub {
-        my ($fs_process, $filepath) = @_;
+        my ($fs_process, $path) = @_;
 
         if ($running_scripts{$script} == 1) {
-          $child_process->write(encode('UTF-8', $filepath)."\n");
+          $child_process->write(encode('UTF-8', $path)."\n");
         } else {
           $child_process->start(program => 'perl', program_args => [$script]);
-          $child_process->write(encode('UTF-8', $filepath)."\n");
+          $child_process->write(encode('UTF-8', $path)."\n");
           $running_scripts{$script} = 1;
         }
       }
@@ -291,11 +294,11 @@ foreach my $script (@scripts) {
         # Start the filesystem handler:
         if ($websocket_request =~ '_select_') {
           if ($websocket_request =~ '_directory_') {
-            $fs_handler->run(\&filesystem_selector, "directory");
+            $filesystem_handler->run(\&filesystem_selector, "directory");
           }
 
           if ($websocket_request =~ '_file_') {
-            $fs_handler->run(\&filesystem_selector, "file");
+            $filesystem_handler->run(\&filesystem_selector, "file");
           }
         } elsif ($websocket_request =~ '_closed_') {
           $running_scripts{$script} = 0;
@@ -341,8 +344,8 @@ my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
   }
 
   if ($page_closed == 1 and $active_scripts == 0) {
-    Mojo::IOLoop->stop_gracefully;
     print "Closing Tabula local server.\n\n";
+    Mojo::IOLoop->stop_gracefully;
   }
 
   # Forbidden requests counter is restarted:
@@ -410,7 +413,7 @@ sub filesystem_selector() {
 }
 
 # HELP:
-sub help() {
+sub help {
   print <<HELP;
 
 Author: Dimitar D. Mitov <github.com/ddmitov>

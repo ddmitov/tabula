@@ -52,4 +52,4 @@ Closing the local index page will close the server process too.
 
 ## [License](./LICENSE.md)
 Tabula is licensed under the Artistic License 2.0.  
-Dimitar D. Mitov 2017 - 2018  
+Dimitar D. Mitov, 2017 - 2018  
