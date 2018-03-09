@@ -59,9 +59,10 @@ if ($ARGV[0] and $ARGV[0] =~ /^--help$/) {
 }
 
 # APPLICATION LIFECYCLE VARIABLES:
-my %running_scripts;
 my $forbidden_requests = 0;
 my $page_closed = 0;
+my %running_scripts;
+my $server_tests = 0;
 
 # PORT VARIABLES:
 my $start_port;
@@ -336,13 +337,25 @@ foreach my $script (@scripts) {
 # ADDITIONAL EVENT LOOP:
 # The following code is executed every 3 seconds.
 my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
-  # When the local page and all local scripts are closed,
-  # the Tabula server is also closed.
+  $server_tests++;
+
+  # Active scripts test:
   my $active_scripts = 0;
   foreach my $script (keys %running_scripts) {
     $active_scripts = $active_scripts + $running_scripts{$script};
   }
 
+  # When the local page did not start any websockets and local scripts,
+  # the Tabula server is closed.
+  if ($page_closed == 0 and $active_scripts == 0 and $server_tests == 2) {
+    print "No local scripts are started.\n";
+    print "Check Tabula local page for JavaScript errors.\n";
+    print "Closing Tabula local server.\n\n";
+    Mojo::IOLoop->stop_gracefully;
+  }
+
+  # When the local page with its websockets and all local scripts are closed,
+  # the Tabula server is also closed.
   if ($page_closed == 1 and $active_scripts == 0) {
     print "Closing Tabula local server.\n\n";
     Mojo::IOLoop->stop_gracefully;

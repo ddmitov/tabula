@@ -85,7 +85,7 @@
 
       JPEG Resizer can resize your JPEG images to 20% of their original size<br>
       using the 'convert' binary from the ImageMagick Linux package.<br>
-      All resized images are written to a subdirectory of the user-selected root directory.<br>
+      All resized images are written to a subdirectory of the selected image directory.<br>
 
       <br>
 

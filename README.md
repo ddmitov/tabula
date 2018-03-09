@@ -6,7 +6,7 @@ Tabula is a Mojolicious framework for desktop applications.
 It is still in an early stage of development and only Unix-like operating systems are supported.  
 
 ## CPAN Dependencies
-* ``AnyEvent`` (for the demo scripts only)  
+* ``AnyEvent`` (for two of the demo scripts only)  
 * ``Browser::Open``  
 * ``Mojolicious::Lite``  
 * ``Mojolicious::Plugin::AccessControl``  
