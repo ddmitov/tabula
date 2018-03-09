@@ -233,41 +233,40 @@ foreach my $script (@scripts) {
     my $loop = Mojo::IOLoop->singleton;
     $loop->stream($websocket_handler->tx->connection)->timeout(0);
 
-    # CHILD PROCESS HANDLER:
-    my $child_process = Mojo::IOLoop::ReadWriteFork->new;
+    # LOCAL SCRIPT HANDLER:
+    my $script_process = Mojo::IOLoop::ReadWriteFork->new;
     # Make sure the child process object does not go out of scope:
-    $websocket_handler->stash(fork => $child_process);
+    $websocket_handler->stash(fork => $script_process);
 
-    # Emitted if the child process can not fork:
-    $child_process->on(
+    # Emitted if a local script can not fork:
+    $script_process->on(
       error => sub {
-        my ($child_process, $child_error) = @_;
-        warn $child_error;
+        my ($script_process, $script_error) = @_;
+        warn $script_error;
       }
     );
 
-    # Emitted when the child prints to STDOUT or STDERR:
-    $child_process->on(
+    # Emitted when a local script prints to STDOUT or STDERR:
+    $script_process->on(
       read => sub {
-        my ($child_process, $child_process_output) = @_;
+        my ($script_process, $script_process_output) = @_;
 
         if ($page_closed == 0) {
-          $websocket_handler->send(decode('UTF-8', $child_process_output));
+          $websocket_handler->send(decode('UTF-8', $script_process_output));
         }
       }
     );
 
-    $child_process->on(
+    # Emitted when a local script exits:
+    $script_process->on(
       close => sub {
-        my($child_process, $exit_value, $signal) = @_;
-
-        $child_process->kill();
+        $script_process->kill();
         $running_scripts{$script} = 0;
       }
     );
 
-    # Start the child process:
-    $child_process->start(program => 'perl', program_args => [$script]);
+    # Start a local script:
+    $script_process->start(program => 'perl', program_args => [$script]);
     $running_scripts{$script} = 1;
 
     # FILESYSTEM HANDLER:
@@ -287,10 +286,10 @@ foreach my $script (@scripts) {
         my ($filesystem_process, $path) = @_;
 
         if ($running_scripts{$script} == 1) {
-          $child_process->write(encode('UTF-8', $path)."\n");
+          $script_process->write(encode('UTF-8', $path)."\n");
         } else {
-          $child_process->start(program => 'perl', program_args => [$script]);
-          $child_process->write(encode('UTF-8', $path)."\n");
+          $script_process->start(program => 'perl', program_args => [$script]);
+          $script_process->write(encode('UTF-8', $path)."\n");
           $running_scripts{$script} = 1;
         }
       }
@@ -313,14 +312,14 @@ foreach my $script (@scripts) {
         } elsif ($websocket_request =~ '_closed_') {
           $running_scripts{$script} = 0;
         } elsif ($websocket_request =~ '_kill_') {
-          $child_process->kill();
+          $script_process->kill();
           $running_scripts{$script} = 0;
         } else {
           if ($running_scripts{$script} == 1) {
-            $child_process->write(encode('UTF-8', $websocket_request)."\n");
+            $script_process->write(encode('UTF-8', $websocket_request)."\n");
           } else {
-            $child_process->start(program => 'perl', program_args => [$script]);
-            $child_process->write(encode('UTF-8', $websocket_request)."\n");
+            $script_process->start(program => 'perl', program_args => [$script]);
+            $script_process->write(encode('UTF-8', $websocket_request)."\n");
             $running_scripts{$script} = 1;
           }
         }
@@ -332,10 +331,10 @@ foreach my $script (@scripts) {
     $websocket_handler->on(
       finish => sub {
         $page_closed = 1;
-        $child_process->write('_close_\n');
+        $script_process->write('_close_\n');
 
         Mojo::IOLoop->timer(3 => sub {
-          $child_process->kill();
+          $script_process->kill();
           $running_scripts{$script} = 0;
         });
       }
