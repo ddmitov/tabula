@@ -35,7 +35,6 @@ my $wait_for_input = AnyEvent->io (
 
     # Close after '_close_' commmand is received:
     if ($stdin =~ "_close_") {
-      print "_closed_";
       exit();
     }
   }

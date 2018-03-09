@@ -309,8 +309,6 @@ foreach my $script (@scripts) {
           if ($websocket_request =~ '_file_') {
             $filesystem_handler->run(\&filesystem_selector, "file");
           }
-        } elsif ($websocket_request =~ '_closed_') {
-          $running_scripts{$script} = 0;
         } elsif ($websocket_request =~ '_kill_') {
           $script_process->kill();
           $running_scripts{$script} = 0;
