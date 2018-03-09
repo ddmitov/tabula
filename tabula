@@ -257,6 +257,15 @@ foreach my $script (@scripts) {
       }
     );
 
+    $child_process->on(
+      close => sub {
+        my($child_process, $exit_value, $signal) = @_;
+
+        $child_process->kill();
+        $running_scripts{$script} = 0;
+      }
+    );
+
     # Start the child process:
     $child_process->start(program => 'perl', program_args => [$script]);
     $running_scripts{$script} = 1;
