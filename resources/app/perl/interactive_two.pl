@@ -2,16 +2,23 @@
 
 use strict;
 use warnings;
+use utf8;
+use feature ':5.10';
 
-use AnyEvent;
+# CORE MODULES:
+use POSIX qw(strftime);
 use Encode qw(decode);
 
-binmode STDOUT, ":utf8";
-
-my $input_text = "";
+# CPAN MODULE:
+use AnyEvent;
 
 # Disable built-in buffering:
 $| = 1;
+
+# UTF-8 encoding for the STDOUT:
+binmode STDOUT, ":utf8";
+
+my $input_text = "";
 
 # Set the event loop:
 my $event_loop = AnyEvent->condvar;
@@ -26,7 +33,7 @@ my $wait_for_input = AnyEvent->io (
 
     message();
 
-    # Close after close commmand is received:
+    # Close after '_close_' commmand is received:
     if ($stdin =~ "_close_") {
       print "_closed_";
       exit();

@@ -266,15 +266,15 @@ foreach my $script (@scripts) {
     # Emitted if the filesystem handler can not fork:
     $filesystem_handler->on(
       error => sub {
-        my ($fs_process, $fs_error) = @_;
-        warn $fs_error;
+        my ($filesystem_process, $filesystem_error) = @_;
+        warn $filesystem_error;
       }
     );
 
     # Emitted when the filesystem handler prints to STDOUT or STDERR:
     $filesystem_handler->on(
       read => sub {
-        my ($fs_process, $path) = @_;
+        my ($filesystem_process, $path) = @_;
 
         if ($running_scripts{$script} == 1) {
           $child_process->write(encode('UTF-8', $path)."\n");
