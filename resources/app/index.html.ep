@@ -83,9 +83,9 @@
 
       <br>
 
-      JPEG Resizer can resize your JPEG images to 20% of their original size<br>
+      JPEG Resizer will resize your JPEG images to 20% of their original size<br>
       using the 'convert' binary from the ImageMagick Linux package.<br>
-      All resized images are written to a subdirectory of the selected image directory.<br>
+      All resized images will be written to a subdirectory of the selected image directory.<br>
 
       <br>
 
@@ -119,10 +119,16 @@
 
     <script>
       var webSocketOne;
-      webSocketOne = new WebSocket("<%= url_for('interactive_one')->to_abs %>");
+      webSocketOne = new WebSocket("<%= url_for('interactive')->to_abs %>");
+      webSocketOne.onopen = function() {
+        webSocketOne.send("unix");
+      }
 
       var webSocketTwo;
-      webSocketTwo = new WebSocket("<%= url_for('interactive_two')->to_abs %>");
+      webSocketTwo = new WebSocket("<%= url_for('interactive')->to_abs %>");
+      webSocketTwo.onopen = function() {
+        webSocketTwo.send("local");
+      }
 
       var nonInteractiveWebSocket;
       nonInteractiveWebSocket = new WebSocket("<%= url_for('noninteractive')->to_abs %>");
@@ -156,7 +162,7 @@
           }
         });
 
-        webSocketOne.onmessage = function (event) {
+        webSocketOne.onmessage = function(event) {
           var data = event.data;
 
           if (data.indexOf("file://") >= 0) {
@@ -168,11 +174,11 @@
           }
         };
 
-        webSocketOne.onclose = function (event) {
+        webSocketOne.onclose = function(event) {
           webSocketClosed();
         }
 
-        webSocketTwo.onmessage = function (event) {
+        webSocketTwo.onmessage = function(event) {
           var data = event.data;
 
           if (data.indexOf("file://") >= 0) {
@@ -184,20 +190,20 @@
           }
         };
 
-        webSocketTwo.onclose = function (event) {
+        webSocketTwo.onclose = function(event) {
           webSocketClosed();
         }
 
-        nonInteractiveWebSocket.onopen = function (event) {
+        nonInteractiveWebSocket.onopen = function(event) {
           nonInteractiveWebSocket.send("Hello from a non-interactive script!");
         };
 
-        nonInteractiveWebSocket.onmessage = function (event) {
+        nonInteractiveWebSocket.onmessage = function(event) {
           var data = event.data;
           $('#noninteractive').html(data);
         };
 
-        resizerWebSocket.onmessage = function (event) {
+        resizerWebSocket.onmessage = function(event) {
           var data = event.data;
 
           $('#resizer-output').html(data);

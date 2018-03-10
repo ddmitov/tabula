@@ -18,7 +18,11 @@ $| = 1;
 # UTF-8 encoding for the STDOUT:
 binmode STDOUT, ":utf8";
 
+# Global variables:
 my $input_text = "";
+
+# Detect the mode of the script from initial STDIN when the script is started:
+my $mode = <STDIN>;
 
 # Set the event loop:
 my $event_loop = AnyEvent->condvar;
@@ -52,10 +56,20 @@ my $wait_one_second = AnyEvent->timer (
 $event_loop->recv;
 
 sub message() {
-  my $formatted_time = strftime('%H:%M:%S', localtime);
-  if (length($input_text) > 0) {
-    print "Local time: ".$formatted_time."<br>Last input: ".$input_text;
-  } else {
-    print "Local time: ".$formatted_time;
+  if ($mode =~ "unix") {
+    if (length($input_text) == 0) {
+      print "Seconds from the Unix epoch: ".time;
+    } else {
+      print "Seconds from the Unix epoch: ".time."<br>Last input: ".$input_text;
+    }
+  }
+
+  if ($mode =~ "local") {
+    my $formatted_time = strftime('%d %B %Y %H:%M:%S', localtime);
+    if (length($input_text) == 0) {
+      print "Local time: ".$formatted_time;
+    } else {
+      print "Local time: ".$formatted_time."<br>Last input: ".$input_text;
+    }
   }
 }
