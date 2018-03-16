@@ -34,16 +34,16 @@
           <form>
             <div class="input-group">
 
-              <input type="text" id="input-one" class="form-control"
-                placeholder="Press Enter to send data to interactive script one">
+              <input type="text" id="input" class="form-control"
+                placeholder="Press Enter to send data to interactive script">
 
               <span class="input-group-addon btn btn-primary"
-                onclick="javascript:insertOne();">
+                onclick="javascript:insert();">
                 Send Data
               </span>
 
               <span class="input-group-addon btn btn-primary"
-                onclick="javascript:selectFileOne();">
+                onclick="javascript:selectFile();">
                 Select File
               </span>
             </div>
@@ -51,35 +51,8 @@
         </div>
       </div>
 
-      <div id="data-one"></div>
-      <div id="file-one"></div>
-
-      <br>
-
-      <div class="row">
-        <div class="col-xs-12 form-group">
-          <form>
-            <div class="input-group">
-
-              <input type="text" id="input-two" class="form-control"
-                placeholder="Press Enter to send data to interactive script two">
-
-              <span class="input-group-addon btn btn-primary"
-                onclick="javascript:insertTwo();">
-                Send Data
-              </span>
-
-              <span class="input-group-addon btn btn-primary"
-                onclick="javascript:selectFileTwo();">
-                Select File
-              </span>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div id="data-two"></div>
-      <div id="file-two"></div>
+      <div id="data"></div>
+      <div id="file"></div>
 
       <br>
 
@@ -118,17 +91,8 @@
     </div>
 
     <script>
-      var webSocketOne;
-      webSocketOne = new WebSocket("<%= url_for('interactive')->to_abs %>");
-      webSocketOne.onopen = function() {
-        webSocketOne.send("unix");
-      }
-
-      var webSocketTwo;
-      webSocketTwo = new WebSocket("<%= url_for('interactive')->to_abs %>");
-      webSocketTwo.onopen = function() {
-        webSocketTwo.send("local");
-      }
+      var interactiveWebSocket;
+      interactiveWebSocket = new WebSocket("<%= url_for('interactive')->to_abs %>");
 
       var nonInteractiveWebSocket;
       nonInteractiveWebSocket = new WebSocket("<%= url_for('noninteractive')->to_abs %>");
@@ -148,49 +112,26 @@
           return;
         }
 
-        $("#input-one").keypress(function(event) {
+        $("#input").keypress(function(event) {
           if (event.which == 13) {
             event.preventDefault();
-            insertOne();
+            insert();
           }
         });
 
-        $("#input-two").keypress(function(event) {
-          if (event.which == 13) {
-            event.preventDefault();
-            insertTwo();
-          }
-        });
-
-        webSocketOne.onmessage = function(event) {
+        interactiveWebSocket.onmessage = function(event) {
           var data = event.data;
 
           if (data.indexOf("file://") >= 0) {
-            $('#file-one').html("Last file: " + data.replace("file://", ""));
+            $('#file').html("Last file: " + data.replace("file://", ""));
           }
 
           if (data.indexOf("file://") < 0) {
-            $('#data-one').html(data);
+            $('#data').html(data);
           }
         };
 
-        webSocketOne.onclose = function(event) {
-          webSocketClosed();
-        }
-
-        webSocketTwo.onmessage = function(event) {
-          var data = event.data;
-
-          if (data.indexOf("file://") >= 0) {
-            $('#file-two').html("Last file: " + data.replace("file://", ""));
-          }
-
-          if (data.indexOf("file://") < 0) {
-            $('#data-two').html(data);
-          }
-        };
-
-        webSocketTwo.onclose = function(event) {
+        interactiveWebSocket.onclose = function(event) {
           webSocketClosed();
         }
 
@@ -216,26 +157,15 @@
         };
       });
 
-      function insertOne() {
-        var input = $('#input-one');
-        webSocketOne.send(input.val());
+      function insert() {
+        var input = $('#input');
+        interactiveWebSocket.send(input.val());
         input.val('');
       }
 
-      function insertTwo() {
-        var input = $('#input-two');
-        webSocketTwo.send(input.val());
-        input.val('');
-      }
-
-      function selectFileOne() {
+      function selectFile() {
         var command = '_select_file_';
-        webSocketOne.send(command);
-      }
-
-      function selectFileTwo() {
-        var command = '_select_file_';
-        webSocketTwo.send(command);
+        interactiveWebSocket.send(command);
       }
 
       function selectImageDirectory() {

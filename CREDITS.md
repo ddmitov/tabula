@@ -6,6 +6,7 @@ Patientia tua in studiis meis computatoriis auxilium meum maximum!
 ## Perl
 http://mojolicious.org/perldoc/Mojolicious/Guides/Rendering  
 http://mojolicious.org/perldoc/Mojo/IOLoop  
+http://mojolicious.org/perldoc/Mojo/IOLoop/Subprocess  
 
 https://metacpan.org/pod/Mojo::IOLoop::ReadWriteFork  
 

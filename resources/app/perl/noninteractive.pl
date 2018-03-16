@@ -15,4 +15,4 @@ my $stdin = <STDIN>;
 chomp $stdin;
 my $input_text = decode('UTF-8', $stdin);
 
-print "$input_text";
+print $input_text;

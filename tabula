@@ -26,6 +26,7 @@ use Browser::Open qw(open_browser_cmd_all);
 use Mojolicious::Lite;
 use Mojolicious::Plugin::AccessControl;
 use Mojo::IOLoop::ReadWriteFork;
+use Mojo::IOLoop::Subprocess;
 use UI::Dialog;
 
 # These dependencies have to be explicitely declared for
@@ -269,32 +270,6 @@ foreach my $script (@scripts) {
     $script_process->start(program => 'perl', program_args => [$script]);
     $running_scripts{$script} = 1;
 
-    # FILESYSTEM HANDLER:
-    my $filesystem_handler = Mojo::IOLoop::ReadWriteFork->new;
-
-    # Emitted if the filesystem handler can not fork:
-    $filesystem_handler->on(
-      error => sub {
-        my ($filesystem_process, $filesystem_error) = @_;
-        warn $filesystem_error;
-      }
-    );
-
-    # Emitted when the filesystem handler prints to STDOUT or STDERR:
-    $filesystem_handler->on(
-      read => sub {
-        my ($filesystem_process, $path) = @_;
-
-        if ($running_scripts{$script} == 1) {
-          $script_process->write(encode('UTF-8', $path)."\n");
-        } else {
-          $script_process->start(program => 'perl', program_args => [$script]);
-          $script_process->write(encode('UTF-8', $path)."\n");
-          $running_scripts{$script} = 1;
-        }
-      }
-    );
-
     # Handle websocket requests:
     $websocket_handler->on(
       message => sub {
@@ -303,11 +278,41 @@ foreach my $script (@scripts) {
         # Start the filesystem handler:
         if ($websocket_request =~ '_select_') {
           if ($websocket_request =~ '_directory_') {
-            $filesystem_handler->run(\&filesystem_selector, "directory");
+            Mojo::IOLoop->subprocess(
+              sub {
+                filepath_selector("directory");
+              },
+              sub {
+                my ($subprocess, $errors, @output) = @_;
+
+                if ($running_scripts{$script} == 1) {
+                  $script_process->write(encode('UTF-8', $output[0])."\n");
+                } else {
+                  $script_process->start(program => 'perl', program_args => [$script]);
+                  $running_scripts{$script} = 1;
+                  $script_process->write(encode('UTF-8', $output[0])."\n");
+                }
+              }
+            );
           }
 
           if ($websocket_request =~ '_file_') {
-            $filesystem_handler->run(\&filesystem_selector, "file");
+            Mojo::IOLoop->subprocess(
+              sub {
+                filepath_selector("file");
+              },
+              sub {
+                my ($subprocess, $errors, @output) = @_;
+
+                if ($running_scripts{$script} == 1) {
+                  $script_process->write(encode('UTF-8', $output[0])."\n");
+                } else {
+                  $script_process->start(program => 'perl', program_args => [$script]);
+                  $running_scripts{$script} = 1;
+                  $script_process->write(encode('UTF-8', $output[0])."\n");
+                }
+              }
+            );
           }
         } elsif ($websocket_request =~ '_kill_') {
           $script_process->kill();
@@ -317,8 +322,8 @@ foreach my $script (@scripts) {
             $script_process->write(encode('UTF-8', $websocket_request)."\n");
           } else {
             $script_process->start(program => 'perl', program_args => [$script]);
-            $script_process->write(encode('UTF-8', $websocket_request)."\n");
             $running_scripts{$script} = 1;
+            $script_process->write(encode('UTF-8', $websocket_request)."\n");
           }
         }
       }
@@ -395,7 +400,7 @@ unless ($browser =~ 'none') {
     close(STDOUT) or die "Can not close STDOUT: $!";
     close(STDERR) or die "Can not close STDERR: $!";
 
-    exec ($browser_command, 'http://localhost:'.$first_available_port);
+    exec($browser_command, 'http://localhost:'.$first_available_port);
     exit(0);
   }
 
@@ -408,7 +413,7 @@ unless ($browser =~ 'none') {
 Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 # FILE OR FOLDER SELECTION DIALOG:
-sub filesystem_selector() {
+sub filepath_selector() {
   my $type = shift;
 
   my $dialog =
@@ -428,7 +433,7 @@ sub filesystem_selector() {
     $path = $dialog->dselect(path => '/');
   }
 
-  print $path;
+  return $path;
 }
 
 # HELP:
