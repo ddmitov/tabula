@@ -284,13 +284,14 @@ foreach my $script (@scripts) {
               },
               sub {
                 my ($subprocess, $errors, @output) = @_;
+                my $path = join('', @output);
 
                 if ($running_scripts{$script} == 1) {
-                  $script_process->write(encode('UTF-8', $output[0])."\n");
+                  $script_process->write(encode('UTF-8', $path)."\n");
                 } else {
                   $script_process->start(program => 'perl', program_args => [$script]);
                   $running_scripts{$script} = 1;
-                  $script_process->write(encode('UTF-8', $output[0])."\n");
+                  $script_process->write(encode('UTF-8', $path)."\n");
                 }
               }
             );
@@ -303,13 +304,14 @@ foreach my $script (@scripts) {
               },
               sub {
                 my ($subprocess, $errors, @output) = @_;
+                my $path = join('', @output);
 
                 if ($running_scripts{$script} == 1) {
-                  $script_process->write(encode('UTF-8', $output[0])."\n");
+                  $script_process->write(encode('UTF-8', $path)."\n");
                 } else {
                   $script_process->start(program => 'perl', program_args => [$script]);
                   $running_scripts{$script} = 1;
-                  $script_process->write(encode('UTF-8', $output[0])."\n");
+                  $script_process->write(encode('UTF-8', $path)."\n");
                 }
               }
             );

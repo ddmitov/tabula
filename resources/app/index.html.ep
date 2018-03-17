@@ -169,6 +169,7 @@
       }
 
       function selectImageDirectory() {
+        $('#resizer-message').html('');
         resizerWebSocket.send('_select_directory_');
       }
 
