@@ -6,7 +6,6 @@ Patientia tua in studiis meis computatoriis auxilium meum maximum!
 ## Perl
 http://mojolicious.org/perldoc/Mojolicious/Guides/Rendering  
 http://mojolicious.org/perldoc/Mojo/IOLoop  
-http://mojolicious.org/perldoc/Mojo/IOLoop/Subprocess  
 
 https://metacpan.org/pod/Mojo::IOLoop::ReadWriteFork  
 
@@ -37,7 +36,6 @@ https://www.w3schools.com/xml/ajax_xmlhttprequest_send.asp
 https://stackoverflow.com/questions/33879740/submitting-form-in-js-using-enter-key-instead-of-a-submit-button  
 https://stackoverflow.com/questions/9614622/equivalent-of-jquery-hide-to-set-visibility-hidden  
 http://adripofjavascript.com/blog/drips/determining-if-a-string-contains-another-string-in-javascript-three-approaches.html  
-https://stackoverflow.com/questions/6275983/cancel-onbeforeunload-event-handler  
 
 ## Google Chrome
 https://superuser.com/questions/188058/which-ports-are-considered-unsafe-on-chrome  

@@ -34,16 +34,16 @@
           <form>
             <div class="input-group">
 
-              <input type="text" id="input" class="form-control"
+              <input type="text" id="interactive-input" class="form-control"
                 placeholder="Press Enter to send data to interactive script">
 
               <span class="input-group-addon btn btn-primary"
-                onclick="javascript:insert();">
+                onclick="javascript:sendDataToInteractiveScript();">
                 Send Data
               </span>
 
               <span class="input-group-addon btn btn-primary"
-                onclick="javascript:selectFile();">
+                onclick="javascript:selectFileForInteractiveScript();">
                 Select File
               </span>
             </div>
@@ -51,8 +51,8 @@
         </div>
       </div>
 
-      <div id="data"></div>
-      <div id="file"></div>
+      <div id="interactive-data"></div>
+      <div id="interactive-file"></div>
 
       <br>
 
@@ -64,7 +64,7 @@
 
       <div class="row">
         <div class="btn btn-primary"
-          onclick="javascript:selectImageDirectory();">
+          onclick="javascript:selectResizerDirectory();">
           Select Image Directory for JPEG Resizer
         </div>
       </div>
@@ -84,7 +84,7 @@
       <div class="row">
         <div class="btn btn-primary" id="resizer-stop-button"
           style="visibility:hidden;" onclick="javascript:killResizerScript();">
-          Kill Script
+          Kill JPEG Resizer
         </div>
       </div>
       <br>
@@ -106,10 +106,10 @@
           return;
         }
 
-        $("#input").keypress(function(event) {
+        $("#interactive-input").keypress(function(event) {
           if (event.which == 13) {
             event.preventDefault();
-            insert();
+            sendDataToInteractiveScript();
           }
         });
 
@@ -117,16 +117,16 @@
           var data = event.data;
 
           if (data.indexOf("file://") >= 0) {
-            $('#file').html("Last file: " + data.replace("file://", ""));
+            $('#interactive-file').html("Last file: " + data.replace("file://", ""));
           }
 
           if (data.indexOf("file://") < 0) {
-            $('#data').html(data);
+            $('#interactive-data').html(data);
           }
         };
 
         interactiveWebSocket.onclose = function(event) {
-          webSocketClosed();
+          $('#container').html('<br>Tabula local server is stopped. Close this window.');
         }
 
         nonInteractiveWebSocket.onopen = function(event) {
@@ -151,20 +151,19 @@
         };
       });
 
-      function insert() {
-        var input = $('#input');
+      function sendDataToInteractiveScript() {
+        var input = $('#interactive-input');
         interactiveWebSocket.send(input.val());
         input.val('');
       }
 
-      function selectFile() {
-        var command = '_select_file_';
-        interactiveWebSocket.send(command);
+      function selectFileForInteractiveScript() {
+        interactiveWebSocket.send('_select_file_');
       }
 
-      function selectImageDirectory() {
-        $('#resizer-message').html('');
+      function selectResizerDirectory() {
         resizerWebSocket.send('_select_directory_');
+        $('#resizer-message').html('');
       }
 
       function killResizerScript() {
@@ -172,11 +171,6 @@
 
         $('#resizer-message').html('Resizer killed!');
         $('#resizer-stop-button').css({"visibility":"hidden"});
-      }
-
-      function webSocketClosed() {
-        $('#container').html('<br>Tabula local server is stopped. Close this window.');
-        window.onbeforeunload = function () {}
       }
     </script>
   </body>

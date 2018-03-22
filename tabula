@@ -277,6 +277,10 @@ foreach my $script (@scripts) {
 
         if ($running_scripts{$script} == 1) {
           $script_process->write(encode('UTF-8', $path)."\n");
+        } else {
+          $script_process->start(program => 'perl', program_args => [$script]);
+          $script_process->write(encode('UTF-8', $path)."\n");
+          $running_scripts{$script} = 1;
         }
       }
     );
@@ -301,6 +305,10 @@ foreach my $script (@scripts) {
         } else {
           if ($running_scripts{$script} == 1) {
             $script_process->write(encode('UTF-8', $websocket_request)."\n");
+          } else {
+            $script_process->start(program => 'perl', program_args => [$script]);
+            $script_process->write(encode('UTF-8', $websocket_request)."\n");
+            $running_scripts{$script} = 1;
           }
         }
       }
