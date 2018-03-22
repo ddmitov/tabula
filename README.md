@@ -11,7 +11,6 @@ It is still in an early stage of development and only Unix-like operating system
 * ``Mojolicious::Lite``  
 * ``Mojolicious::Plugin::AccessControl``  
 * ``Mojo::IOLoop::ReadWriteFork``  
-* ``Mojo::IOLoop::Subprocess``  
 * ``UI::Dialog``  
 
 ## Usage

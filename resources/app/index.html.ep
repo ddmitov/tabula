@@ -100,12 +100,6 @@
       var resizerWebSocket;
       resizerWebSocket = new WebSocket("<%= url_for('jpg_resizer')->to_abs %>");
 
-      window.onbeforeunload = function() {
-        var shutdownRequest = new XMLHttpRequest();
-        shutdownRequest.open("GET", "/_quit_");
-        shutdownRequest.send();
-      }
-
       $(document).ready(function() {
         if (!("WebSocket" in window)) {
           alert('Your browser does not support WebSockets!');

@@ -26,7 +26,6 @@ use Browser::Open qw(open_browser_cmd_all);
 use Mojolicious::Lite;
 use Mojolicious::Plugin::AccessControl;
 use Mojo::IOLoop::ReadWriteFork;
-use Mojo::IOLoop::Subprocess;
 use UI::Dialog;
 
 # These dependencies have to be explicitely declared for
@@ -214,12 +213,6 @@ any '/' => (
   $page_handler->render('index');
 };
 
-# The '/_quit_' URL may be used to signal
-# the Tabula server that the local page is closed:
-any '/_quit_' => sub {
-  $page_closed = 1;
-};
-
 # WEBSOCKETS HANDLER:
 foreach my $script (@scripts) {
   my($script_name, $script_directory, $script_suffix) =
@@ -229,10 +222,6 @@ foreach my $script (@scripts) {
     my $websocket_handler = shift;
 
     $page_closed = 0;
-
-    # No websocket timeout:
-    my $loop = Mojo::IOLoop->singleton;
-    $loop->stream($websocket_handler->tx->connection)->timeout(0);
 
     # LOCAL SCRIPT HANDLER:
     my $script_process = Mojo::IOLoop::ReadWriteFork->new;
@@ -270,6 +259,28 @@ foreach my $script (@scripts) {
     $script_process->start(program => 'perl', program_args => [$script]);
     $running_scripts{$script} = 1;
 
+    # FILESYSTEM HANDLER:
+    my $filesystem_handler = Mojo::IOLoop::ReadWriteFork->new;
+
+    # Emitted if the filesystem handler can not fork:
+    $filesystem_handler->on(
+      error => sub {
+        my ($filesystem_process, $filesystem_error) = @_;
+        warn $filesystem_error;
+      }
+    );
+
+    # Emitted when the filesystem handler prints to STDOUT or STDERR:
+    $filesystem_handler->on(
+      read => sub {
+        my ($filesystem_process, $path) = @_;
+
+        if ($running_scripts{$script} == 1) {
+          $script_process->write(encode('UTF-8', $path)."\n");
+        }
+      }
+    );
+
     # Handle websocket requests:
     $websocket_handler->on(
       message => sub {
@@ -278,53 +289,17 @@ foreach my $script (@scripts) {
         # Start the filesystem handler:
         if ($websocket_request =~ '_select_') {
           if ($websocket_request =~ '_directory_') {
-            Mojo::IOLoop->subprocess(
-              sub {
-                filepath_selector("directory");
-              },
-              sub {
-                my ($subprocess, $errors, @output) = @_;
-                my $path = join('', @output);
-
-                if ($running_scripts{$script} == 1) {
-                  $script_process->write(encode('UTF-8', $path)."\n");
-                } else {
-                  $script_process->start(program => 'perl', program_args => [$script]);
-                  $running_scripts{$script} = 1;
-                  $script_process->write(encode('UTF-8', $path)."\n");
-                }
-              }
-            );
+            $filesystem_handler->run(\&filesystem_selector, "directory");
           }
 
           if ($websocket_request =~ '_file_') {
-            Mojo::IOLoop->subprocess(
-              sub {
-                filepath_selector("file");
-              },
-              sub {
-                my ($subprocess, $errors, @output) = @_;
-                my $path = join('', @output);
-
-                if ($running_scripts{$script} == 1) {
-                  $script_process->write(encode('UTF-8', $path)."\n");
-                } else {
-                  $script_process->start(program => 'perl', program_args => [$script]);
-                  $running_scripts{$script} = 1;
-                  $script_process->write(encode('UTF-8', $path)."\n");
-                }
-              }
-            );
+            $filesystem_handler->run(\&filesystem_selector, "file");
           }
         } elsif ($websocket_request =~ '_kill_') {
           $script_process->kill();
           $running_scripts{$script} = 0;
         } else {
           if ($running_scripts{$script} == 1) {
-            $script_process->write(encode('UTF-8', $websocket_request)."\n");
-          } else {
-            $script_process->start(program => 'perl', program_args => [$script]);
-            $running_scripts{$script} = 1;
             $script_process->write(encode('UTF-8', $websocket_request)."\n");
           }
         }
@@ -360,18 +335,18 @@ my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
 
   # When the local page did not start any websockets and local scripts,
   # the Tabula server is closed.
-  if ($page_closed == 0 and $active_scripts == 0 and $server_tests == 2) {
+  if ($page_closed == 0 and $active_scripts == 0 and $server_tests == 3) {
     print "No local scripts are started.\n";
     print "Check Tabula local page for JavaScript errors.\n";
     print "Closing Tabula local server.\n\n";
-    Mojo::IOLoop->stop_gracefully;
+    exit(0);
   }
 
   # When the local page with its websockets and all local scripts are closed,
   # the Tabula server is also closed.
   if ($page_closed == 1 and $active_scripts == 0) {
     print "Closing Tabula local server.\n\n";
-    Mojo::IOLoop->stop_gracefully;
+    exit(0);
   }
 
   # Forbidden requests counter is restarted:
@@ -382,6 +357,7 @@ my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
 my $daemon =
   Mojo::Server::Daemon->
     new(app => app, listen => ['http://localhost:'.$first_available_port]);
+    $daemon->inactivity_timeout(0);
 $daemon->start;
 
 # BROWSER STARTER:
@@ -415,7 +391,7 @@ unless ($browser =~ 'none') {
 Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 # FILE OR FOLDER SELECTION DIALOG:
-sub filepath_selector() {
+sub filesystem_selector() {
   my $type = shift;
 
   my $dialog =
@@ -435,7 +411,7 @@ sub filepath_selector() {
     $path = $dialog->dselect(path => '/');
   }
 
-  return $path;
+  print $path;
 }
 
 # HELP:
