@@ -60,7 +60,6 @@ if ($ARGV[0] and $ARGV[0] =~ /^--help$/) {
 
 # APPLICATION LIFECYCLE VARIABLES:
 my $forbidden_requests = 0;
-my $page_closed = 0;
 my %running_scripts;
 my $server_tests = 0;
 
@@ -209,7 +208,6 @@ any '/' => (
 ) => sub {
   my $page_handler = shift;
 
-  $page_closed = 0;
   $page_handler->render('index');
 };
 
@@ -220,8 +218,6 @@ foreach my $script (@scripts) {
 
   websocket '/'.$script_name => sub {
     my $websocket_handler = shift;
-
-    $page_closed = 0;
 
     # LOCAL SCRIPT HANDLER:
     my $script_process = Mojo::IOLoop::ReadWriteFork->new;
@@ -240,8 +236,9 @@ foreach my $script (@scripts) {
     $script_process->on(
       read => sub {
         my ($script_process, $script_process_output) = @_;
+        $running_scripts{$script} = 1;
 
-        if ($page_closed == 0) {
+        if ($websocket_handler->tx->is_websocket) {
           $websocket_handler->send(decode('UTF-8', $script_process_output));
         }
       }
@@ -318,7 +315,6 @@ foreach my $script (@scripts) {
     # when the local page and its websockets are closed.
     $websocket_handler->on(
       finish => sub {
-        $page_closed = 1;
         $script_process->write('_close_\n');
 
         Mojo::IOLoop->timer(3 => sub {
@@ -343,7 +339,7 @@ my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
 
   # When the local page did not start any websockets and local scripts,
   # the Tabula server is closed.
-  if ($page_closed == 0 and $active_scripts == 0 and $server_tests == 3) {
+  if ($active_scripts == 0 and $server_tests == 3) {
     print "No local scripts are started.\n";
     print "Check Tabula local page for JavaScript errors.\n";
     print "Closing Tabula local server.\n\n";
@@ -352,7 +348,7 @@ my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
 
   # When the local page with its websockets and all local scripts are closed,
   # the Tabula server is also closed.
-  if ($page_closed == 1 and $active_scripts == 0) {
+  if ($active_scripts == 0 and $server_tests > 3) {
     print "Closing Tabula local server.\n\n";
     exit(0);
   }
