@@ -5,13 +5,15 @@ Tabula
 Tabula is a Mojolicious framework for desktop applications.  
 It is still in an early stage of development and only Unix-like operating systems are supported.  
 
-## CPAN Dependencies
-* ``AnyEvent`` (for one of the demo scripts only)  
+## Tabula CPAN Dependencies
 * ``Browser::Open``  
 * ``Mojolicious::Lite``  
 * ``Mojolicious::Plugin::AccessControl``  
 * ``Mojo::IOLoop::ReadWriteFork``  
 * ``UI::Dialog``  
+
+## Tabula Demo CPAN Dependency
+* ``AnyEvent``  
 
 ## Usage
 ```
@@ -45,7 +47,7 @@ Optional arguments:
 If run without arguments, Tabula will operate like started with the command line:  
 tabula --browser=default --port=3000-9000  
 The first available port between ports 3000 and 9000 will be used.  
-Closing the local index page will close the server process too.  
+Closing all websockets will close the server process too.  
 ```
 
 ## [Thanks and Credits](./CREDITS.md)

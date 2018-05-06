@@ -59,19 +59,13 @@ if ($ARGV[0] and $ARGV[0] =~ /^--help$/) {
 }
 
 # APPLICATION LIFECYCLE VARIABLES:
-my $forbidden_requests = 0;
-my %running_scripts;
-my $server_tests = 0;
-
-# PORT VARIABLES:
-my $start_port;
-my $stop_port;
-my $first_available_port = 0;
-
-# SETTINGS:
 my $browser = 'default';
 my $port_setting;
 my $no_port_test;
+my $start_port;
+my $stop_port;
+my $first_available_port = 0;
+my %running_scripts;
 
 # Command-line arguments:
 GetOptions(
@@ -112,10 +106,7 @@ if ($start_port > $stop_port) {
 # APPLICATION FOLDER:
 my $app_folder = catdir($Bin, 'resources', 'app');
 
-# CUSTOM PATHS:
-# Template path:
-unshift @{app->renderer->paths}, $app_folder;
-# Static files path:
+# STATIC FILES PATH:
 unshift @{app->static->paths}, $app_folder;
 
 # SCRIPTS FINDER:
@@ -186,32 +177,16 @@ if (defined $no_port_test) {
 # it will deny access and it will display a warning page:
 any '/' => (
   'access' => [
-    {
-      on_deny => sub {
-        # Tabula gives no response when contacted
-        # more than once a second from a non-local IP adress to
-        # prevent denial-of-service attacks.
-        # Every 3 seconds the forbidden requests counter is restarted.
-        $forbidden_requests++;
-        if ($forbidden_requests <= 3) {
-          my $forbidden_requests_handler = shift;
-
-          $forbidden_requests_handler->res->code(403);
-          $forbidden_requests_handler->render(template => 'forbidden');
-        }
-      }
-    },
     allow => 'localhost',
     allow => '127.0.0.1',
     deny  => 'all',
   ]
 ) => sub {
   my $page_handler = shift;
-
-  $page_handler->render('index');
+  $page_handler->reply->static("index.html");
 };
 
-# WEBSOCKETS HANDLER:
+# WEBSOCKET CONNECTIONS HANDLER:
 foreach my $script (@scripts) {
   my($script_name, $script_directory, $script_suffix) =
     fileparse($script, '.pl');
@@ -236,8 +211,8 @@ foreach my $script (@scripts) {
     $script_process->on(
       read => sub {
         my ($script_process, $script_process_output) = @_;
-        $running_scripts{$script} = 1;
 
+        $running_scripts{$script} = 1;
         if ($websocket_handler->tx->is_websocket) {
           $websocket_handler->send(decode('UTF-8', $script_process_output));
         }
@@ -287,7 +262,7 @@ foreach my $script (@scripts) {
       message => sub {
         my ($websocket, $websocket_request) = @_;
 
-        # Start the filesystem handler:
+        # Handle special websocket commands:
         if ($websocket_request =~ '_select_') {
           if ($websocket_request =~ '_directory_') {
             $filesystem_handler->run(\&filesystem_selector, "directory");
@@ -311,8 +286,7 @@ foreach my $script (@scripts) {
       }
     );
 
-    # All child processes are closed
-    # when the local page and its websockets are closed.
+    # Child process is closed when its websocket is closed.
     $websocket_handler->on(
       finish => sub {
         $script_process->write('_close_\n');
@@ -326,35 +300,19 @@ foreach my $script (@scripts) {
   };
 }
 
-# ADDITIONAL EVENT LOOP:
-# The following code is executed every 3 seconds.
-my $additional_event_loop = Mojo::IOLoop->recurring(3 => sub {
-  $server_tests++;
-
-  # Active scripts test:
+# ADDITIONAL EVENT LOOP - executed every 8 seconds:
+my $additional_event_loop = Mojo::IOLoop->recurring(8 => sub {
+  # Count all active scripts:
   my $active_scripts = 0;
   foreach my $script (keys %running_scripts) {
     $active_scripts = $active_scripts + $running_scripts{$script};
   }
 
-  # When the local page did not start any websockets and local scripts,
-  # the Tabula server is closed.
-  if ($active_scripts == 0 and $server_tests == 3) {
-    print "No local scripts are started.\n";
-    print "Check Tabula local page for JavaScript errors.\n";
-    print "Closing Tabula local server.\n\n";
+  # When all websockets and local scripts are closed,
+  # Tabula server is also closed.
+  if ($active_scripts == 0) {
     exit(0);
   }
-
-  # When the local page with its websockets and all local scripts are closed,
-  # the Tabula server is also closed.
-  if ($active_scripts == 0 and $server_tests > 3) {
-    print "Closing Tabula local server.\n\n";
-    exit(0);
-  }
-
-  # Forbidden requests counter is restarted:
-  $forbidden_requests = 0;
 });
 
 # SERVER STARTER:
@@ -374,8 +332,6 @@ unless ($browser =~ 'none') {
     $browser_command = $browser;
   }
 
-  print "Browser command: $browser_command http://localhost:$first_available_port\n";
-
   my $pid = fork();
   if (not $pid) {
     close(STDIN) or die "Can not close STDIN: $!";
@@ -390,6 +346,13 @@ unless ($browser =~ 'none') {
     die "Can not fork: $!";
   }
 }
+
+# Detach Tabula process from terminal (if any):
+print "\n";
+
+my $pid = fork();
+exit(1) if $pid < 0;
+exit(0) if $pid > 0;
 
 # EVENT LOOP STARTER:
 Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
@@ -456,21 +419,8 @@ Optional arguments:
 If run without arguments, Tabula will operate like started with the command line:
 $0 --browser=default --port=3000-9000
 The first available port between ports 3000 and 9000 will be used.
-Closing the local index page will close the server process too.
+Closing all websockets will close the server process too.
 
 HELP
   exit (1);
 }
-
-__DATA__
-
-@@ forbidden.html.ep
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Tabula</title>
-  </head>
-  <body>
-    <h1>Access denied!</h1>
-  </body>
-</html>
