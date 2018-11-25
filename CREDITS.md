@@ -39,6 +39,7 @@ https://www.w3schools.com/xml/ajax_xmlhttprequest_send.asp
 https://stackoverflow.com/questions/33879740/submitting-form-in-js-using-enter-key-instead-of-a-submit-button  
 https://stackoverflow.com/questions/9614622/equivalent-of-jquery-hide-to-set-visibility-hidden  
 https://stackoverflow.com/questions/10406930/how-to-construct-a-websocket-uri-relative-to-the-page-uri  
+https://stackoverflow.com/questions/4909167/how-to-add-a-custom-right-click-menu-to-a-webpage  
 
 http://adripofjavascript.com/blog/drips/determining-if-a-string-contains-another-string-in-javascript-three-approaches.html  
 
