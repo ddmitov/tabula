@@ -338,8 +338,13 @@ unless ($browser =~ 'none') {
     close(STDOUT) or die "Can not close STDOUT: $!";
     close(STDERR) or die "Can not close STDERR: $!";
 
-    exec($browser_command, 'http://localhost:'.$first_available_port);
-    exit(0);
+    if ($browser =~ 'chrome') {
+      exec('chromium-browser', '--app=http://localhost:'.$first_available_port);
+      exit(0);
+    } else {
+      exec($browser_command, 'http://localhost:'.$first_available_port);
+      exit(0);
+    }
   }
 
   if (not defined $pid) {
@@ -395,9 +400,11 @@ $0 --browser=<browser> --port=<port> --no-port-test
 Optional arguments:
 --browser=<browser>
   Possible values:
-  1. default - system default browser will be found and used
-  2. none - no browser will be started
+  1. none - no browser is started
      This value is useful when Tabula is started by a custom browser application.
+  2. default - system default browser is found and used
+  3. chrome - Chrome browser is started in App Mode:
+     chromium-browser --app=http://localhost:{first_available_port}
   3. full path to a browser binary like:
      /usr/bin/firefox
   4. browser command on PATH like:
@@ -416,10 +423,10 @@ Optional arguments:
 --help
   this help
 
-If run without arguments, Tabula will operate like started with the command line:
-$0 --browser=default --port=3000-9000
-The first available port between ports 3000 and 9000 will be used.
-Closing all websockets will close the server process too.
+  If run without arguments, Tabula operates like started with the command line:
+  tabula --browser=default --port=3000-9000
+  The first available port between ports 3000 and 9000 is be used.
+  Closing all websockets closes the server process too.
 
 HELP
   exit (1);
