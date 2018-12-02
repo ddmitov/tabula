@@ -19,7 +19,7 @@ It is available only for Unix-like operating systems.
 
 ## Usage
 
-```bash
+```
 tabula  
 tabula --browser=<browser> --port=<port> --no-port-test  
 
