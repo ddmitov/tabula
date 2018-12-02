@@ -30,7 +30,7 @@ Optional arguments:
      This value is useful when Tabula is started by a custom browser application.
   2. default - system default browser is found and used
   3. chrome - Chrome browser is started in App Mode:
-     chromium-browser --app=http://localhost:{first_available_port}
+     chromium-browser --app=http://localhost:<first_available_port>
   3. full path to a browser binary like:
      /usr/bin/firefox
   4. browser command on PATH like:
