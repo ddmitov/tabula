@@ -30,7 +30,7 @@ while (my $file = readdir ($directory_handle)) {
   # Only files are selected:
   next unless (-f "$directory_to_open/$file");
   # Regular expression is used to find files ending in .jpg:
-  next unless ($file =~ m/\.jpg$/);
+  next unless ($file =~ m/(\.jpg)|(\.JPG)$/);
 
   my $filepath_to_read = $directory_to_open.'/'.$file;
   my $filepath_to_write = $output_directory_full_path.'/'.$file;
@@ -38,7 +38,7 @@ while (my $file = readdir ($directory_handle)) {
   $output = $output.'Resizing '.$file.' ...<br>';
   print $output;
 
-  my $result = `convert $filepath_to_read -resize 20% $filepath_to_write`;
+  my $result = `convert $filepath_to_read -resize 33% $filepath_to_write`;
 }
 
 closedir($directory_handle);

@@ -4,5 +4,5 @@ perl/bin
 perl/lib
 
 cpanfile.snapshot
-gdrive
+backup
 upgit
